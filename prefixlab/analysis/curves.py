@@ -28,7 +28,7 @@ def k_star(df: pd.DataFrame, cell: str, cond: str, level: float, design: str = "
     if sub.empty:
         return None
     means = sub.groupby("k")[col].mean().sort_index()
-    ok = means[means <= level]
+    ok = means[means <= level + 1e-9]  # tolerate float noise at the boundary
     return int(ok.index.min()) if len(ok) else None
 
 
