@@ -11,8 +11,7 @@ from dataclasses import dataclass, field
 import torch
 
 from .scoring import collate, target_nll_per_token
-from .sweep import copy_split_bits
-from .train import _lr_factor, evaluate
+from .train import _lr_factor, copy_split_bits, evaluate
 
 
 @dataclass
@@ -40,6 +39,8 @@ class FloorResult:
     best_step: int
     copy_split: dict
     history: list = field(default_factory=list)
+    per_example_bits: list = field(default_factory=list)
+    per_example_tokens: list = field(default_factory=list)
 
 
 def train_lora_floor(model, tok, data: dict, cfg: FloorCfg) -> FloorResult:
@@ -89,4 +90,5 @@ def train_lora_floor(model, tok, data: dict, cfg: FloorCfg) -> FloorResult:
         base.eval()
         for p in base.parameters():
             p.requires_grad_(False)
-    return FloorResult(best_bits, test.bits_per_token, test.bits_total, test.n_tokens, best_step, split, history)
+    return FloorResult(best_bits, test.bits_per_token, test.bits_total, test.n_tokens, best_step, split, history,
+                       test.per_example_bits, test.per_example_tokens)

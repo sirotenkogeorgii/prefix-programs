@@ -1,16 +1,19 @@
-"""One resumable run of the prefix sweep: train, evaluate on test, record a CSV row + checkpoint."""
+"""Resumable runs: prefix sweep (Design A), no-prefix baselines and LoRA floors.
+
+Each finished run becomes one CSV row plus a per-example JSON (`<results dir>/per_example/<run_id>.json`
+with test bits and token counts per example) for bootstrap intervals later.
+"""
 from __future__ import annotations
 
+import json
 from dataclasses import dataclass
 from pathlib import Path
 
-import torch
-
+from .floor import FloorCfg, train_lora_floor
 from .prefix import SoftPrefix
 from .results import ResultsTable, save_prefix
-from .scoring import collate, target_bits_per_token
 from .tasks import Cell
-from .train import TrainCfg, evaluate, train_prefix
+from .train import TrainCfg, copy_split_bits, evaluate, train_prefix
 
 
 @dataclass(frozen=True)
@@ -19,7 +22,7 @@ class RunSpec:
     k: int
     seed: int
     cond: str = "none"  # which information the context already supplies: none | lang | task | both
-    design: str = "A"  # A = plain sweep; later: flat / hier (variational), none = no-prefix baseline
+    design: str = "A"  # A = plain sweep; flat / hier = variational; none = no-prefix; floor = LoRA
 
     def key(self) -> dict:
         return dict(cell=self.cell.key(), k=self.k, seed=self.seed, cond=self.cond, design=self.design)
@@ -28,39 +31,29 @@ class RunSpec:
         return f"{self.design}_{self.cell.key()}_{self.cond}_k{self.k}_s{self.seed}"
 
 
-@torch.no_grad()
-def copy_split_bits(model, prefix, examples, pad_id: int, batch_size: int = 32) -> dict:
-    """Total test bits split into copyable and non-copyable target tokens."""
-    bits_c = bits_n = 0.0
-    n_c = n_n = 0
-    for i in range(0, len(examples), batch_size):
-        chunk = examples[i : i + batch_size]
-        batch = collate(chunk, pad_id)
-        pe = prefix(batch.input_ids.shape[0], sample=False) if prefix is not None else None
-        pt = target_bits_per_token(model, batch, pe).cpu()
-        cm = torch.zeros_like(batch.target_mask)
-        for b, e in enumerate(chunk):
-            cm[b, : len(e.copy_mask)] = torch.tensor(e.copy_mask, dtype=torch.bool)
-        tm = batch.target_mask
-        bits_c += pt[cm & tm].sum().item()
-        bits_n += pt[tm & ~cm].sum().item()
-        n_c += int((cm & tm).sum())
-        n_n += int((tm & ~cm).sum())
-    return {
-        "test_bits_copy": bits_c,
-        "n_test_tokens_copy": n_c,
-        "test_bits_noncopy": bits_n,
-        "n_test_tokens_noncopy": n_n,
-        "test_bits_per_token_noncopy": bits_n / max(n_n, 1),
-    }
-
-
 def _common(model, data) -> dict:
     return {
         "model": getattr(model, "name_or_path", "") or getattr(model.config, "_name_or_path", ""),
         "n_train": len(data["train"]),
         "n_dev": len(data["dev"]),
         "n_test": len(data["test"]),
+    }
+
+
+def _save_per_example(results: ResultsTable, run_id: str, bits: list, tokens: list) -> str:
+    d = results.path.parent / "per_example"
+    d.mkdir(parents=True, exist_ok=True)
+    p = d / f"{run_id}.json"
+    p.write_text(json.dumps({"bits": [round(b, 6) for b in bits], "tokens": [int(t) for t in tokens]}))
+    return str(p)
+
+
+def _test_fields(test, split: dict) -> dict:
+    return {
+        "test_bits_per_token": test.bits_per_token,
+        "test_bits_total": test.bits_total,
+        "n_test_tokens": test.n_tokens,
+        **split,
     }
 
 
@@ -82,12 +75,10 @@ def run_one(model, tok, spec: RunSpec, data: dict, cfg: TrainCfg, results: Resul
         "steps": cfg.steps,
         "best_step": res.best_step,
         "dev_bits_per_token": res.best_dev_bits_per_token,
-        "test_bits_per_token": test.bits_per_token,
-        "test_bits_total": test.bits_total,
-        "n_test_tokens": test.n_tokens,
-        **copy_split_bits(model, prefix, data["test"], tok.pad_token_id, cfg.eval_batch_size),
+        **_test_fields(test, copy_split_bits(model, prefix, data["test"], tok.pad_token_id, cfg.eval_batch_size)),
         "kl_bits": 0.0,
         "ckpt": str(ckpt),
+        "per_example": _save_per_example(results, spec.run_id(), test.per_example_bits, test.per_example_tokens),
     }
     results.append(row)
     return row
@@ -98,21 +89,48 @@ def baseline_row(model, tok, cell: Cell, cond: str, data: dict, results: Results
     key = dict(cell=cell.key(), k=0, seed=0, cond=cond, design="none")
     if results.is_done(**key):
         return None
+    run_id = f"none_{cell.key()}_{cond}_k0_s0"
     dev = evaluate(model, None, data["dev"], tok.pad_token_id)
     test = evaluate(model, None, data["test"], tok.pad_token_id)
     row = {
         **key,
-        "run_id": f"none_{cell.key()}_{cond}_k0_s0",
+        "run_id": run_id,
         **_common(model, data),
         "steps": 0,
         "best_step": 0,
         "dev_bits_per_token": dev.bits_per_token,
-        "test_bits_per_token": test.bits_per_token,
-        "test_bits_total": test.bits_total,
-        "n_test_tokens": test.n_tokens,
-        **copy_split_bits(model, None, data["test"], tok.pad_token_id),
+        **_test_fields(test, copy_split_bits(model, None, data["test"], tok.pad_token_id)),
         "kl_bits": 0.0,
         "ckpt": "",
+        "per_example": _save_per_example(results, run_id, test.per_example_bits, test.per_example_tokens),
+    }
+    results.append(row)
+    return row
+
+
+def floor_row(model, tok, cell: Cell, cond: str, data: dict, results: ResultsTable, fcfg: FloorCfg) -> dict | None:
+    """LoRA fine-tuning floor for a cell under a conditioning mode (k = 0, design = floor)."""
+    key = dict(cell=cell.key(), k=0, seed=fcfg.seed, cond=cond, design="floor")
+    if results.is_done(**key):
+        return None
+    run_id = f"floor_{cell.key()}_{cond}_k0_s{fcfg.seed}"
+    res = train_lora_floor(model, tok, data, fcfg)
+    row = {
+        **key,
+        "run_id": run_id,
+        **_common(model, data),
+        "steps": fcfg.steps,
+        "best_step": res.best_step,
+        "dev_bits_per_token": res.dev_bits_per_token,
+        "test_bits_per_token": res.test_bits_per_token,
+        "test_bits_total": res.test_bits_total,
+        "n_test_tokens": res.n_test_tokens,
+        **res.copy_split,
+        "kl_bits": 0.0,
+        "ckpt": "",
+        "per_example": _save_per_example(results, run_id, res.per_example_bits, res.per_example_tokens),
+        "lora_r": fcfg.r,
+        "lora_lr": fcfg.lr,
     }
     results.append(row)
     return row

@@ -7,7 +7,8 @@ import time
 from .data.flores import load_flores_rows
 from .model import load_model
 from .results import ResultsTable
-from .sweep import RunSpec, baseline_row, run_one
+from .floor import FloorCfg
+from .sweep import RunSpec, baseline_row, floor_row, run_one
 from .tasks import LANGS, Cell, cell_examples, cell_pairs
 from .train import TrainCfg
 
@@ -23,6 +24,12 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("--seeds", default="0")
     p.add_argument("--conds", default="none")
     p.add_argument("--baselines", action="store_true", help="also record the no-prefix (k=0) row per cell and cond")
+    p.add_argument("--floors", action="store_true", help="also train a LoRA floor per cell and cond (design=floor)")
+    p.add_argument("--floor-steps", type=int, default=1500)
+    p.add_argument("--floor-lr", type=float, default=2e-4)
+    p.add_argument("--floor-r", type=int, default=16)
+    p.add_argument("--floor-alpha", type=int, default=32)
+    p.add_argument("--floor-eval-every", type=int, default=100)
     p.add_argument("--steps", type=int, default=1500)
     p.add_argument("--batch-size", type=int, default=16)
     p.add_argument("--lr", type=float, default=5e-2)
@@ -55,6 +62,8 @@ def main(argv=None, model=None, tok=None) -> str:
     cfg = TrainCfg(steps=args.steps, batch_size=args.batch_size, lr=args.lr, warmup=args.warmup,
                    eval_every=args.eval_every, eval_batch_size=args.eval_batch_size)
     results = ResultsTable(args.results)
+    fcfg = FloorCfg(steps=args.floor_steps, batch_size=args.batch_size, lr=args.floor_lr, r=args.floor_r,
+                    alpha=args.floor_alpha, eval_every=args.floor_eval_every, eval_batch_size=args.eval_batch_size)
 
     dev_rows = devtest_rows = None
     if any(t != "recall" for t in tasks):
@@ -77,6 +86,11 @@ def main(argv=None, model=None, tok=None) -> str:
                     row = baseline_row(model, tok, cell, cond, data, results)
                     if row:
                         print(f"[{cell.key()} {cond}] baseline k=0: test {row['test_bits_per_token']:.3f} bits/tok", flush=True)
+                if args.floors:
+                    t0 = time.time()
+                    row = floor_row(model, tok, cell, cond, data, results, fcfg)
+                    if row:
+                        print(f"[{cell.key()} {cond}] LoRA floor: test {row['test_bits_per_token']:.3f} bits/tok ({time.time() - t0:.0f}s)", flush=True)
                 for k in ks:
                     for seed in seeds:
                         spec = RunSpec(cell, k, seed, cond)

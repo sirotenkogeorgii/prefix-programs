@@ -12,7 +12,7 @@ from dataclasses import dataclass, field
 
 import torch
 
-from .scoring import LN2, collate, target_bits, target_nll_per_token
+from .scoring import LN2, collate, target_bits, target_bits_per_token, target_nll_per_token
 
 
 @dataclass
@@ -34,6 +34,7 @@ class EvalResult:
     bits_total: float
     n_tokens: int
     per_example_bits: list[float] = field(default_factory=list)
+    per_example_tokens: list[int] = field(default_factory=list)
 
     @property
     def bits_per_token(self) -> float:
@@ -56,15 +57,43 @@ def _device_of(model) -> torch.device:
 @torch.no_grad()
 def evaluate(model, prefix, examples, pad_id: int, batch_size: int = 32, sample: bool = False) -> EvalResult:
     model.eval()
-    total, n_tok, per_ex = 0.0, 0, []
+    total, n_tok, per_ex, per_tok = 0.0, 0, [], []
     for i in range(0, len(examples), batch_size):
         batch = collate(examples[i : i + batch_size], pad_id)
         pe = prefix(batch.input_ids.shape[0], sample=sample) if prefix is not None else None
         bits = target_bits(model, batch, pe)
         per_ex.extend(bits.tolist())
+        per_tok.extend(batch.target_mask.sum(dim=1).tolist())
         total += bits.sum().item()
         n_tok += batch.n_targets
-    return EvalResult(total, n_tok, per_ex)
+    return EvalResult(total, n_tok, per_ex, per_tok)
+
+
+@torch.no_grad()
+def copy_split_bits(model, prefix, examples, pad_id: int, batch_size: int = 32) -> dict:
+    """Total test bits split into copyable and non-copyable target tokens."""
+    bits_c = bits_n = 0.0
+    n_c = n_n = 0
+    for i in range(0, len(examples), batch_size):
+        chunk = examples[i : i + batch_size]
+        batch = collate(chunk, pad_id)
+        pe = prefix(batch.input_ids.shape[0], sample=False) if prefix is not None else None
+        pt = target_bits_per_token(model, batch, pe).cpu()
+        cm = torch.zeros_like(batch.target_mask)
+        for b, e in enumerate(chunk):
+            cm[b, : len(e.copy_mask)] = torch.tensor(e.copy_mask, dtype=torch.bool)
+        tm = batch.target_mask
+        bits_c += pt[cm & tm].sum().item()
+        bits_n += pt[tm & ~cm].sum().item()
+        n_c += int((cm & tm).sum())
+        n_n += int((tm & ~cm).sum())
+    return {
+        "test_bits_copy": bits_c,
+        "n_test_tokens_copy": n_c,
+        "test_bits_noncopy": bits_n,
+        "n_test_tokens_noncopy": n_n,
+        "test_bits_per_token_noncopy": bits_n / max(n_n, 1),
+    }
 
 
 def _lr_factor(step: int, warmup: int, total: int) -> float:
