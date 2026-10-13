@@ -33,3 +33,33 @@ def test_pairs_to_examples_uses_task_separator(tok):
     exs_rc = pairs_to_examples(tok, [("Dante was born in", "Флоренция")], Cell("recall", "ru"), "lang")
     assert exs_tr[0].text == "Hello there\nПривет"
     assert exs_rc[0].text == "Russian: Dante was born in Флоренция"
+
+
+from prefixlab.tasks import cell_examples, cell_pairs
+from prefixlab.data.flores import load_flores_rows
+
+
+def test_cell_pairs_translation_splits_dev_and_uses_devtest_for_test(flores_dir):
+    dev = load_flores_rows(flores_dir, ["eng_Latn", "rus_Cyrl"], "dev")
+    devtest = load_flores_rows(flores_dir, ["eng_Latn", "rus_Cyrl"], "devtest")
+    pairs = cell_pairs(Cell("translation", "ru"), dev, devtest, mlama_root=None, dev_frac=0.25, seed=0)
+    assert len(pairs["train"]) == 6 and len(pairs["dev"]) == 2 and len(pairs["test"]) == 3
+    assert not (set(pairs["train"]) & set(pairs["dev"]))
+    assert pairs == cell_pairs(Cell("translation", "ru"), dev, devtest, mlama_root=None, dev_frac=0.25, seed=0)
+    assert all("слово" in y and "word" in x for x, y in pairs["test"])
+
+
+def test_cell_pairs_recall_uses_mlama_splits(mlama_dir):
+    pairs = cell_pairs(Cell("recall", "ru"), None, None, mlama_root=mlama_dir)
+    n = sum(len(v) for v in pairs.values())
+    assert n == 32 and all(pairs[s] for s in ("train", "dev", "test"))
+
+
+def test_cell_examples_builds_every_split_with_task_format(tok, flores_dir):
+    dev = load_flores_rows(flores_dir, ["eng_Latn", "rus_Cyrl"], "dev")
+    devtest = load_flores_rows(flores_dir, ["eng_Latn", "rus_Cyrl"], "devtest")
+    pairs = cell_pairs(Cell("continuation", "ru"), dev, devtest, mlama_root=None)
+    exs = cell_examples(tok, pairs, Cell("continuation", "ru"), "task")
+    assert set(exs) == {"train", "dev", "test"}
+    assert exs["test"][0].text.startswith("Continue: слово")
+    assert "\n" not in exs["test"][0].text

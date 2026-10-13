@@ -38,3 +38,12 @@ def aligned_rows(per_lang: dict[str, dict[int, str]]) -> list[dict]:
     codes = list(per_lang)
     common = set.intersection(*(set(d) for d in per_lang.values())) if codes else set()
     return [{"id": i, **{c: per_lang[c][i] for c in codes}} for i in sorted(common)]
+
+
+def load_flores_rows(flores_dir, lang_codes: list[str], split: str, token: str | None = None, cache_dir=None) -> list[dict]:
+    """Aligned rows from a local mirror (`<dir>/<split>/<code>.jsonl`) or, if `flores_dir` is None, from the Hub."""
+    if flores_dir is not None:
+        per = {c: read_flores_jsonl(Path(flores_dir) / split / f"{c}.jsonl") for c in lang_codes}
+    else:
+        per = load_flores(lang_codes, split, token, cache_dir)
+    return aligned_rows(per)

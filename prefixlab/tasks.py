@@ -1,9 +1,11 @@
 """Cells of the task x language grid, their text format, and conditioning strings."""
 from __future__ import annotations
 
+import random
 from dataclasses import dataclass
 
 from .data.formats import Cond, Example, build_example
+from .data.mlama import cross_lingual_recall, find_mlama_root, split_by_uuid
 
 LANGS = {
     "en": {"name": "English", "flores": "eng_Latn", "mlama": "en"},
@@ -65,5 +67,35 @@ def continuation_pairs(rows: list[dict], lang: str) -> list[tuple[str, str]]:
 
 
 def pairs_to_examples(tok, pairs, cell: Cell, mode: str) -> list[Example]:
+    """Pairs are (input, target) or (input, target, copy_all); copy_all marks every target token copyable."""
     cond, sep = cond_for(cell, mode), TASKS[cell.task]["sep"]
-    return [build_example(tok, x, y, cond, sep=sep) for x, y in pairs]
+    out = []
+    for pr in pairs:
+        ex = build_example(tok, pr[0], pr[1], cond, sep=sep)
+        if len(pr) > 2 and pr[2]:
+            ex.copy_mask = list(ex.target_mask)
+        out.append(ex)
+    return out
+
+
+def shuffle_split(items: list, dev_frac: float, seed: int) -> tuple[list, list]:
+    idx = list(range(len(items)))
+    random.Random(seed).shuffle(idx)
+    n_dev = int(round(len(items) * dev_frac))
+    dev_idx = set(idx[:n_dev])
+    return [items[i] for i in idx if i not in dev_idx], [items[i] for i in idx if i in dev_idx]
+
+
+def cell_pairs(cell: Cell, flores_dev_rows, flores_devtest_rows, mlama_root, dev_frac: float = 0.2, seed: int = 0) -> dict:
+    """{train, dev, test} pairs. FLORES tasks: dev split -> train/dev, devtest -> test. Recall: hash split of mLAMA."""
+    if cell.task == "recall":
+        rows = cross_lingual_recall(find_mlama_root(mlama_root), LANGS[cell.lang]["mlama"])
+        parts = split_by_uuid(rows, seed=seed)
+        return {s: [(r["input"], r["target"], r["copyable"]) for r in part] for s, part in zip(("train", "dev", "test"), parts)}
+    fn = translation_pairs if cell.task == "translation" else continuation_pairs
+    train, dev = shuffle_split(fn(flores_dev_rows, cell.lang), dev_frac, seed)
+    return {"train": train, "dev": dev, "test": fn(flores_devtest_rows, cell.lang)}
+
+
+def cell_examples(tok, pairs_by_split: dict, cell: Cell, mode: str) -> dict[str, list[Example]]:
+    return {s: pairs_to_examples(tok, prs, cell, mode) for s, prs in pairs_by_split.items()}

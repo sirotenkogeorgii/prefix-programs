@@ -25,35 +25,12 @@ def test_flores_read_and_align_drops_ids_missing_in_any_language(tmp_path):
     assert rows[0]["rus_Cyrl"] == "ru 1"
 
 
-def _mlama_fixture(root):
-    _write_jsonl(root / "en" / "templates.jsonl", [
-        {"relation": "P19", "template": "[X] was born in [Y] ."},
-        {"relation": "P36", "template": "[Y] is the capital of [X] ."},
-    ])
-    _write_jsonl(root / "ru" / "templates.jsonl", [
-        {"relation": "P19", "template": "[X] родился в [Y] ."},
-        {"relation": "P36", "template": "[Y] столица [X] ."},
-    ])
-    en_p19 = [
-        {"uuid": "u1", "lineid": 1, "sub_uri": "Q1", "sub_label": "Dante", "obj_uri": "Q2", "obj_label": "Florence"},
-        {"uuid": "u2", "lineid": 2, "sub_uri": "Q3", "sub_label": "Einstein", "obj_uri": "Q4", "obj_label": "Ulm"},
-        {"uuid": "u3", "lineid": 3, "sub_uri": "Q5", "sub_label": "Nobody", "obj_uri": "Q6", "obj_label": "Nowhere"},
-    ]
-    ru_p19 = [
-        {"uuid": "u1", "lineid": 1, "sub_uri": "Q1", "sub_label": "Данте", "obj_uri": "Q2", "obj_label": "Флоренция"},
-        {"uuid": "u2", "lineid": 2, "sub_uri": "Q3", "sub_label": "Эйнштейн", "obj_uri": "Q4", "obj_label": "Ulm"},
-    ]
-    _write_jsonl(root / "en" / "P19.jsonl", en_p19)
-    _write_jsonl(root / "ru" / "P19.jsonl", ru_p19)
-    _write_jsonl(root / "en" / "P36.jsonl", [{"uuid": "u9", "lineid": 9, "sub_uri": "Q9", "sub_label": "France", "obj_uri": "Q10", "obj_label": "Paris"}])
-    _write_jsonl(root / "ru" / "P36.jsonl", [{"uuid": "u9", "lineid": 9, "sub_uri": "Q9", "sub_label": "Франция", "obj_uri": "Q10", "obj_label": "Париж"}])
-
-
-def test_cross_lingual_recall_uses_english_template_and_target_language_object(tmp_path):
-    _mlama_fixture(tmp_path)
-    rows = cross_lingual_recall(tmp_path, obj_lang="ru")
+def test_cross_lingual_recall_uses_english_template_and_target_language_object(mlama_dir):
+    rows = cross_lingual_recall(mlama_dir, obj_lang="ru")
     by_uuid = {r["uuid"]: r for r in rows}
-    assert set(by_uuid) == {"u1", "u2"}  # u3 has no Russian object; P36 has [Y] not at the end
+    assert "u3" not in by_uuid  # no Russian object
+    assert "u99" not in by_uuid  # P36 has [Y] not at the end
+    assert len(by_uuid) == 32
     assert by_uuid["u1"]["input"] == "Dante was born in"
     assert by_uuid["u1"]["target"] == "Флоренция"
     assert by_uuid["u1"]["relation"] == "P19"
@@ -61,10 +38,11 @@ def test_cross_lingual_recall_uses_english_template_and_target_language_object(t
     assert by_uuid["u2"]["copyable"] is True  # 'Ulm' identical in both languages
 
 
-def test_cross_lingual_recall_english_objects_for_english_cell(tmp_path):
-    _mlama_fixture(tmp_path)
-    rows = cross_lingual_recall(tmp_path, obj_lang="en")
-    assert {r["target"] for r in rows} == {"Florence", "Ulm", "Nowhere"}
+def test_cross_lingual_recall_english_objects_for_english_cell(mlama_dir):
+    rows = cross_lingual_recall(mlama_dir, obj_lang="en")
+    targets = {r["target"] for r in rows}
+    assert {"Florence", "Ulm", "Nowhere"} <= targets and len(rows) == 33
+    assert not any(r["copyable"] for r in rows)
 
 
 def test_split_by_uuid_is_deterministic_and_disjoint():
