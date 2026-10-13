@@ -1,0 +1,2 @@
+cell,k,seed,cond,design,run_id,model,n_train,n_dev,n_test,steps,best_step,dev_bits_per_token,test_bits_per_token,test_bits_total,n_test_tokens,test_bits_copy,n_test_tokens_copy,test_bits_noncopy,n_test_tokens_noncopy,test_bits_per_token_noncopy,kl_bits,ckpt
+recall-ru,0,0,none,none,none_recall-ru_none_k0_s0,Qwen/Qwen2.5-0.5B,4000,300,500,0,0,6.7899256324166375,6.738549436970952,14204.862213134766,2108,222.65742874145508,39,13982.205139160156,2069,6.757953184707664,0.0,
