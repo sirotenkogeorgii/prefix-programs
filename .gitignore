@@ -11,3 +11,4 @@ dist/
 checkpoints/
 sources/
 hf_cache/
+data_raw/

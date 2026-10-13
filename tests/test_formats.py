@@ -45,3 +45,25 @@ def test_first_target_token_may_carry_leading_space_but_not_input_text(tok):
     first = _target_tokens(tok, ex)[0]
     assert first.lstrip(" ").startswith("П")
     assert ex.n_target_tokens == sum(ex.target_mask)
+
+
+def test_same_line_separator_puts_label_at_start(tok):
+    ex = build_example(tok, "Dante was born in", "Флоренция", Cond(lang_label="Russian:"), sep=" ")
+    assert ex.text == "Russian: Dante was born in Флоренция"
+    decoded = "".join(_target_tokens(tok, ex))
+    assert decoded.strip() == "Флоренция"
+    assert ex.boundary_clean
+
+
+def test_same_line_with_instruction_and_label(tok):
+    ex = build_example(tok, "Dante was born in", "Флоренция", Cond(lang_label="Russian:", task_instruction="Complete:"), sep=" ")
+    assert ex.text == "Complete: Russian: Dante was born in Флоренция"
+
+
+def test_copy_mask_marks_target_tokens_that_occur_in_the_input(tok):
+    ex = build_example(tok, "Paris is big.", "Париж большой. Paris", Cond())
+    toks = [tok.decode([t]) for t in ex.input_ids]
+    copy_targets = [toks[i].strip() for i, (m, c) in enumerate(zip(ex.target_mask, ex.copy_mask)) if m and c]
+    assert "Paris" in "".join(copy_targets)
+    assert all(not c for c, m in zip(ex.copy_mask, ex.target_mask) if not m)  # never set off-target
+    assert not any(("Париж" in toks[i]) and ex.copy_mask[i] for i in range(len(toks)))

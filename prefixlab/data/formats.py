@@ -26,25 +26,38 @@ class Example:
     target_char_start: int
     n_target_tokens: int
     boundary_clean: bool  # first target token starts at the target or at the single space before it
+    copy_mask: list[bool]  # target tokens whose surface form occurs in the input text
 
 
-def build_text(input_text: str, target_text: str, cond: Cond) -> tuple[str, int]:
+def build_text(input_text: str, target_text: str, cond: Cond, sep: str = "\n") -> tuple[str, int]:
+    """Newline tasks: `[instr ]input⏎[label ]target`. Same-line tasks: `[instr ][label ]input target`."""
     context = ""
     if cond.task_instruction:
         context += cond.task_instruction + " "
-    context += input_text + "\n"
-    if cond.lang_label:
-        context += cond.lang_label + " "
+    if sep == "\n":
+        context += input_text + "\n"
+        if cond.lang_label:
+            context += cond.lang_label + " "
+    else:
+        if cond.lang_label:
+            context += cond.lang_label + " "
+        context += input_text + sep
     return context + target_text, len(context)
 
 
-def build_example(tok, input_text: str, target_text: str, cond: Cond = Cond()) -> Example:
-    text, start = build_text(input_text, target_text, cond)
+def _is_copyable(piece: str, input_text: str) -> bool:
+    piece = piece.strip()
+    return len(piece) >= 2 and any(ch.isalnum() for ch in piece) and piece in input_text
+
+
+def build_example(tok, input_text: str, target_text: str, cond: Cond = Cond(), sep: str = "\n") -> Example:
+    text, start = build_text(input_text, target_text, cond, sep)
     end = len(text)
     enc = tok(text, add_special_tokens=False, return_offsets_mapping=True)
     ids = list(enc["input_ids"])
     offsets = enc["offset_mapping"]
     mask = [bool(e > start and s < end) for (s, e) in offsets]
+    copy = [m and _is_copyable(text[s:e], input_text) for (s, e), m in zip(offsets, mask)]
     first = next((s for (s, _), m in zip(offsets, mask) if m), None)
     clean = first is not None and (first == start or (first == start - 1 and text[start - 1] == " "))
     return Example(
@@ -54,4 +67,5 @@ def build_example(tok, input_text: str, target_text: str, cond: Cond = Cond()) -
         target_char_start=start,
         n_target_tokens=sum(mask),
         boundary_clean=clean,
+        copy_mask=copy,
     )
