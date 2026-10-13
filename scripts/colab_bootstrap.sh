@@ -4,6 +4,7 @@
 # Expects: HF_TOKEN in the environment (or `hf auth login` done), and optionally RESULTS_DIR pointing into Google Drive.
 set -euo pipefail
 cd "$(dirname "$0")/.."
+pip uninstall -y -q torchao >/dev/null 2>&1 || true   # stale Colab torchao breaks peft import
 pip install -q -e . >/dev/null
 python - <<'PY'
 import os, torch

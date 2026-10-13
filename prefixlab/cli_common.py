@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import argparse
+import random
 
 from .data.flores import load_flores_rows
 from .model import load_model
@@ -71,11 +72,18 @@ def valid_cell(task: str, lang: str) -> bool:
     return not (task == "translation" and lang == "en")
 
 
+def cap_split(items: list, cap: int | None, seed: int) -> list:
+    """Seeded random subsample of at most `cap` items (the head would be relation-sorted for recall)."""
+    if not cap or cap >= len(items):
+        return list(items)
+    idx = sorted(random.Random(seed).sample(range(len(items)), cap))
+    return [items[i] for i in idx]
+
+
 def cell_pairs_from_args(args, cell: Cell, dev_rows, devtest_rows) -> dict:
     pairs = cell_pairs(cell, dev_rows, devtest_rows, args.mlama_dir, args.dev_frac, args.split_seed)
     for split, cap in (("train", args.max_train), ("dev", args.max_dev), ("test", args.max_test)):
-        if cap:
-            pairs[split] = pairs[split][:cap]
+        pairs[split] = cap_split(pairs[split], cap, args.split_seed)
     return pairs
 
 

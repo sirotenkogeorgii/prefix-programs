@@ -63,3 +63,14 @@ def test_cell_examples_builds_every_split_with_task_format(tok, flores_dir):
     assert set(exs) == {"train", "dev", "test"}
     assert exs["test"][0].text.startswith("Continue: слово")
     assert "\n" not in exs["test"][0].text
+
+
+from prefixlab.cli_common import cap_split
+
+
+def test_cap_split_is_a_seeded_random_subsample_not_the_head():
+    items = list(range(100))
+    a = cap_split(items, 10, seed=0)
+    assert len(a) == 10 and set(a) <= set(items) and a != items[:10]
+    assert a == cap_split(items, 10, seed=0) and a != cap_split(items, 10, seed=1)
+    assert cap_split(items, None, seed=0) == items and cap_split(items, 500, seed=0) == items

@@ -1,0 +1,19 @@
+{
+  "fixed_on": "2026-10-13, from the 1.5B dev pilot (translation-ru, recall-ru, continuation-ru; k in {1,4,16}, 300 steps)",
+  "model": "Qwen/Qwen2.5-1.5B",
+  "operating_points_D_hat": [0.25, 0.10],
+  "k_grid": [1, 2, 4, 8, 16, 32],
+  "seeds_design_A": [0, 1],
+  "prompt_tuning": {"steps": 1500, "batch_size": 16, "lr": 0.05, "warmup": 50, "eval_every": 100},
+  "lora_floor": {"steps": 1500, "lr": 0.0002, "r": 16, "alpha": 32},
+  "beta_grid_flat": [0.3, 1.0, 3.0],
+  "hier": {"beta_grid": [0.3, 1.0, 3.0], "tau": 1.0},
+  "distance_budget_examples": 512,
+  "regime2": {"ms": [1, 2, 4, 8], "examples_per_cell": 100, "cells": ["translation-ru", "translation-de", "recall-ru", "continuation-ru"]},
+  "notes": [
+    "k grid kept: recall still improves from k=4 to k=16 on dev (1.53 -> 1.50 bits/tok), translation saturates by k=4.",
+    "lr 5e-2 kept: best dev step was 250-300 of 300 in every pilot run, so 1500 steps is not short.",
+    "Test subsets, when capped, are seeded random subsamples; the pilot's head-of-split cap is why its recall test bits are below dev.",
+    "Confirmatory comparisons are the five listed in Prefix_Project_Proposal_v1.md Section 8; everything else is exploratory."
+  ]
+}
