@@ -1,0 +1,31 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "prefixlab"
+version = "0.0.1"
+description = "Soft prefixes as programs for a frozen multilingual LM: description length of language and task"
+requires-python = ">=3.10"
+dependencies = [
+  "torch>=2.2",
+  "transformers>=4.45",
+  "peft>=0.10",
+  "datasets>=3.0",
+  "huggingface_hub>=0.25",
+  "numpy",
+  "pandas",
+  "scipy",
+  "matplotlib",
+]
+
+[project.optional-dependencies]
+test = ["pytest>=8"]
+
+[tool.setuptools.packages.find]
+include = ["prefixlab*"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-q -p no:cacheprovider"
+filterwarnings = ["ignore::UserWarning", "ignore::DeprecationWarning"]
