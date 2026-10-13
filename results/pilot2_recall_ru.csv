@@ -1,0 +1,2 @@
+cell,k,seed,cond,design,run_id,model,n_train,n_dev,n_test,steps,best_step,dev_bits_per_token,test_bits_per_token,test_bits_total,n_test_tokens,test_bits_copy,n_test_tokens_copy,test_bits_noncopy,n_test_tokens_noncopy,test_bits_per_token_noncopy,kl_bits,ckpt,per_example
+recall-ru,0,0,none,none,none_recall-ru_none_k0_s0,Qwen/Qwen2.5-0.5B,4000,128,400,0,0,7.320934047360392,6.817812233489024,12053.892028808594,1768,69.38866424560547,7,11984.503295898438,1761,6.8055101055641325,0.0,,results/per_example/none_recall-ru_none_k0_s0.json
