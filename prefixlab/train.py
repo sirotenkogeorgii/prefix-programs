@@ -152,3 +152,32 @@ def train_prefix(model, prefix, train_examples, dev_examples, pad_id: int, cfg: 
                 best_bits, best_step = ev.bits_per_token, step
                 best_state = {k: v.detach().cpu().clone() for k, v in prefix.state_dict().items()}
     return TrainResult(best_state, best_bits, best_step, history, cfg.steps)
+
+
+def train_steps(model, prefix, examples, pad_id: int, cfg: TrainCfg) -> float:
+    """Optimize the prefix in place for cfg.steps on `examples` with no evaluation or model selection.
+    Used by the prequential coder, where peeking at held-out data would leak. Returns the mean train loss."""
+    torch.manual_seed(cfg.seed)
+    gen = torch.Generator().manual_seed(cfg.seed)
+    device = _device_of(model)
+    prefix.to(device)
+    model.eval()
+    opt = torch.optim.AdamW(prefix.parameters(), lr=cfg.lr, weight_decay=0.0)
+    sched = torch.optim.lr_scheduler.LambdaLR(opt, lambda s: _lr_factor(s, cfg.warmup, cfg.steps))
+    n_tokens = max(sum(e.n_target_tokens for e in examples), 1)
+    order: list[int] = []
+    total = 0.0
+    for step in range(cfg.steps):
+        if len(order) < cfg.batch_size:
+            order += torch.randperm(len(examples), generator=gen).tolist()
+        idx, order = order[: cfg.batch_size], order[cfg.batch_size :]
+        batch = collate([examples[i] for i in idx], pad_id, cfg.pad_to)
+        nll = target_nll_per_token(model, batch, prefix(batch.input_ids.shape[0], sample=cfg.sample))
+        loss = nll.sum() / batch.n_targets + cfg.beta * prefix.kl_nats() / n_tokens
+        opt.zero_grad(set_to_none=True)
+        loss.backward()
+        torch.nn.utils.clip_grad_norm_(prefix.parameters(), cfg.clip)
+        opt.step()
+        sched.step()
+        total += loss.item()
+    return total / max(cfg.steps, 1)
