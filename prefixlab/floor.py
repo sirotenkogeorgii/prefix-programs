@@ -28,6 +28,7 @@ class FloorCfg:
     eval_every: int = 100
     seed: int = 0
     eval_batch_size: int = 32
+    pad_to: int | None = None
 
 
 @dataclass
@@ -65,7 +66,7 @@ def train_lora_floor(model, tok, data: dict, cfg: FloorCfg) -> FloorResult:
             if len(order) < cfg.batch_size:
                 order += torch.randperm(len(train), generator=gen).tolist()
             idx, order = order[: cfg.batch_size], order[cfg.batch_size :]
-            batch = collate([train[i] for i in idx], pad)
+            batch = collate([train[i] for i in idx], pad, cfg.pad_to)
             nll = target_nll_per_token(model, batch, None)
             loss = nll.sum() / batch.n_targets
             opt.zero_grad(set_to_none=True)
@@ -75,7 +76,7 @@ def train_lora_floor(model, tok, data: dict, cfg: FloorCfg) -> FloorResult:
             sched.step()
             running += loss.item(); n_running += 1
             if step % cfg.eval_every == 0 or step == cfg.steps:
-                ev = evaluate(model, None, data["dev"], pad, cfg.eval_batch_size)
+                ev = evaluate(model, None, data["dev"], pad, cfg.eval_batch_size, pad_to=cfg.pad_to)
                 history.append({"step": step, "train_nats_per_token": running / max(n_running, 1), "dev_bits_per_token": ev.bits_per_token})
                 running, n_running = 0.0, 0
                 if ev.bits_per_token < best_bits:
@@ -83,8 +84,8 @@ def train_lora_floor(model, tok, data: dict, cfg: FloorCfg) -> FloorResult:
                     best_state = {k: v.detach().cpu().clone() for k, v in get_peft_model_state_dict(peft_model).items()}
         set_peft_model_state_dict(peft_model, best_state)
         with torch.no_grad():
-            test = evaluate(model, None, data["test"], pad, cfg.eval_batch_size)
-            split = copy_split_bits(model, None, data["test"], pad, cfg.eval_batch_size)
+            test = evaluate(model, None, data["test"], pad, cfg.eval_batch_size, pad_to=cfg.pad_to)
+            split = copy_split_bits(model, None, data["test"], pad, cfg.eval_batch_size, cfg.pad_to)
     finally:
         base = peft_model.unload()
         base.eval()

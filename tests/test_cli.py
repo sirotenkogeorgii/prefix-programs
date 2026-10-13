@@ -10,7 +10,7 @@ def test_cli_runs_grid_and_is_idempotent(tok, tiny_model, tmp_path, flores_dir, 
         "--ks", "1,2", "--seeds", "0", "--conds", "none,lang",
         "--steps", "4", "--batch-size", "4", "--eval-every", "2", "--baselines", "--floors", "--floor-steps", "2", "--floor-r", "2",
         "--results", str(tmp_path / "sweep.csv"), "--ckpt-dir", str(tmp_path / "ckpt"),
-        "--flores-dir", str(flores_dir), "--mlama-dir", str(mlama_dir), "--max-test", "2",
+        "--flores-dir", str(flores_dir), "--mlama-dir", str(mlama_dir), "--max-test", "2", "--pad-to", "32",
     ]
     main(argv, model=tiny_model, tok=tok)
     df = pd.read_csv(tmp_path / "sweep.csv")

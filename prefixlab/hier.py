@@ -73,13 +73,13 @@ def train_hier(model, prefix: HierarchicalPrefix, data_by_member: dict, pad_id: 
         if len(orders[m]) < cfg.batch_size:
             orders[m] += torch.randperm(len(train), generator=gens[m]).tolist()
         idx, orders[m] = orders[m][: cfg.batch_size], orders[m][cfg.batch_size :]
-        return collate([train[i] for i in idx], pad_id)
+        return collate([train[i] for i in idx], pad_id, cfg.pad_to)
 
     def dev_objective():
         bits = toks = 0.0
         per = {}
         for m in members:
-            ev = evaluate(model, MemberView(prefix, m), data_by_member[m]["dev"], pad_id, cfg.eval_batch_size)
+            ev = evaluate(model, MemberView(prefix, m), data_by_member[m]["dev"], pad_id, cfg.eval_batch_size, pad_to=cfg.pad_to)
             per[m] = ev.bits_per_token
             bits += ev.bits_total; toks += ev.n_tokens
         return bits / max(toks, 1), per
@@ -131,15 +131,16 @@ def run_hier(model, tok, spec: HierSpec, members: dict[str, Cell], data_by_membe
     rows = []
     for m, cell in todo.items():
         view, data = MemberView(prefix, m), data_by_member[m]
-        dev = evaluate(model, view, data["dev"], pad, bs)
-        test = evaluate(model, view, data["test"], pad, bs)
-        sampled = [evaluate(model, view, data["test"], pad, bs, sample=True).bits_per_token for _ in range(N_EVAL_SAMPLES)]
+        dev = evaluate(model, view, data["dev"], pad, bs, pad_to=cfg.pad_to)
+        test = evaluate(model, view, data["test"], pad, bs, pad_to=cfg.pad_to)
+        sampled = [evaluate(model, view, data["test"], pad, bs, sample=True, pad_to=cfg.pad_to).bits_per_token
+                   for _ in range(N_EVAL_SAMPLES)]
         run_id = f"{spec.run_id()}_{m}"
         row = {
             "cell": cell.key(), **base, "member": m, "run_id": run_id, **_common(model, data),
             "steps": cfg.steps, "best_step": res.best_step,
             "dev_bits_per_token": dev.bits_per_token,
-            **_test_fields(test, copy_split_bits(model, view, data["test"], pad, bs)),
+            **_test_fields(test, copy_split_bits(model, view, data["test"], pad, bs, cfg.pad_to)),
             "kl_centre_bits": kl_c, "kl_dev_bits": kl_d[m], "kl_bits": kl_c + kl_d[m],
             "test_bits_per_token_sampled": sum(sampled) / len(sampled),
             "ckpt": str(ckpt),

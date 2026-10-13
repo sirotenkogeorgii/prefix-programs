@@ -77,7 +77,7 @@ def run_one(model, tok, spec: RunSpec, data: dict, cfg: TrainCfg, results: Resul
         raise ValueError(f"run_one handles designs A and flat, not {spec.design}")
     res = train_prefix(model, prefix, data["train"], data["dev"], tok.pad_token_id, cfg)
     prefix.load_state_dict(res.best_state)
-    test = evaluate(model, prefix, data["test"], tok.pad_token_id, cfg.eval_batch_size)
+    test = evaluate(model, prefix, data["test"], tok.pad_token_id, cfg.eval_batch_size, pad_to=cfg.pad_to)
     ckpt = Path(ckpt_dir) / f"{spec.run_id()}.pt"
     save_prefix(prefix, ckpt)
     row = {
@@ -87,27 +87,28 @@ def run_one(model, tok, spec: RunSpec, data: dict, cfg: TrainCfg, results: Resul
         "steps": cfg.steps,
         "best_step": res.best_step,
         "dev_bits_per_token": res.best_dev_bits_per_token,
-        **_test_fields(test, copy_split_bits(model, prefix, data["test"], tok.pad_token_id, cfg.eval_batch_size)),
+        **_test_fields(test, copy_split_bits(model, prefix, data["test"], tok.pad_token_id, cfg.eval_batch_size, cfg.pad_to)),
         "kl_bits": prefix.kl_bits().item(),
         "ckpt": str(ckpt),
         "per_example": _save_per_example(results, spec.run_id(), test.per_example_bits, test.per_example_tokens),
     }
     if spec.design == "flat":
-        sampled = [evaluate(model, prefix, data["test"], tok.pad_token_id, cfg.eval_batch_size, sample=True).bits_per_token
-                   for _ in range(N_EVAL_SAMPLES)]
+        sampled = [evaluate(model, prefix, data["test"], tok.pad_token_id, cfg.eval_batch_size, sample=True,
+                            pad_to=cfg.pad_to).bits_per_token for _ in range(N_EVAL_SAMPLES)]
         row["test_bits_per_token_sampled"] = sum(sampled) / len(sampled)
     results.append(row)
     return row
 
 
-def baseline_row(model, tok, cell: Cell, cond: str, data: dict, results: ResultsTable) -> dict | None:
+def baseline_row(model, tok, cell: Cell, cond: str, data: dict, results: ResultsTable,
+                 pad_to: int | None = None, batch_size: int = 32) -> dict | None:
     """No-prefix evaluation of a cell under a conditioning mode (k = 0)."""
     key = dict(cell=cell.key(), k=0, seed=0, cond=cond, design="none")
     if results.is_done(**key):
         return None
     run_id = f"none_{cell.key()}_{cond}_k0_s0"
-    dev = evaluate(model, None, data["dev"], tok.pad_token_id)
-    test = evaluate(model, None, data["test"], tok.pad_token_id)
+    dev = evaluate(model, None, data["dev"], tok.pad_token_id, batch_size, pad_to=pad_to)
+    test = evaluate(model, None, data["test"], tok.pad_token_id, batch_size, pad_to=pad_to)
     row = {
         **key,
         "run_id": run_id,
@@ -115,7 +116,7 @@ def baseline_row(model, tok, cell: Cell, cond: str, data: dict, results: Results
         "steps": 0,
         "best_step": 0,
         "dev_bits_per_token": dev.bits_per_token,
-        **_test_fields(test, copy_split_bits(model, None, data["test"], tok.pad_token_id)),
+        **_test_fields(test, copy_split_bits(model, None, data["test"], tok.pad_token_id, batch_size, pad_to)),
         "kl_bits": 0.0,
         "ckpt": "",
         "per_example": _save_per_example(results, run_id, test.per_example_bits, test.per_example_tokens),

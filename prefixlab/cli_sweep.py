@@ -36,6 +36,7 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("--warmup", type=int, default=50)
     p.add_argument("--eval-every", type=int, default=100)
     p.add_argument("--eval-batch-size", type=int, default=32)
+    p.add_argument("--pad-to", type=int, default=None, help="bucket padded length to a multiple; use on MPS")
     p.add_argument("--results", default="results/sweep.csv")
     p.add_argument("--ckpt-dir", default="checkpoints")
     p.add_argument("--flores-dir", default=None, help="local mirror with <split>/<code>.jsonl; default downloads from the Hub")
@@ -60,10 +61,11 @@ def main(argv=None, model=None, tok=None) -> str:
     tasks, langs, conds = _csv(args.tasks), _csv(args.langs), _csv(args.conds)
     ks, seeds = [int(k) for k in _csv(args.ks)], [int(s) for s in _csv(args.seeds)]
     cfg = TrainCfg(steps=args.steps, batch_size=args.batch_size, lr=args.lr, warmup=args.warmup,
-                   eval_every=args.eval_every, eval_batch_size=args.eval_batch_size)
+                   eval_every=args.eval_every, eval_batch_size=args.eval_batch_size, pad_to=args.pad_to)
     results = ResultsTable(args.results)
     fcfg = FloorCfg(steps=args.floor_steps, batch_size=args.batch_size, lr=args.floor_lr, r=args.floor_r,
-                    alpha=args.floor_alpha, eval_every=args.floor_eval_every, eval_batch_size=args.eval_batch_size)
+                    alpha=args.floor_alpha, eval_every=args.floor_eval_every, eval_batch_size=args.eval_batch_size,
+                    pad_to=args.pad_to)
 
     dev_rows = devtest_rows = None
     if any(t != "recall" for t in tasks):
@@ -83,7 +85,7 @@ def main(argv=None, model=None, tok=None) -> str:
             for cond in conds:
                 data = cell_examples(tok, pairs, cell, cond)
                 if args.baselines:
-                    row = baseline_row(model, tok, cell, cond, data, results)
+                    row = baseline_row(model, tok, cell, cond, data, results, args.pad_to, args.eval_batch_size)
                     if row:
                         print(f"[{cell.key()} {cond}] baseline k=0: test {row['test_bits_per_token']:.3f} bits/tok", flush=True)
                 if args.floors:

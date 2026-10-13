@@ -65,3 +65,21 @@ def test_per_token_bits_sum_to_total_and_vanish_off_target(tok, tiny_model):
     assert torch.allclose(per_tok.sum(dim=1), total, atol=1e-4)
     assert torch.all(per_tok[0][~batch.target_mask[0]] == 0)
     assert torch.all(per_tok[0][batch.target_mask[0]] > 0)
+
+
+def test_collate_pad_to_fixes_sequence_length_without_changing_bits(tok, tiny_model):
+    a = build_example(tok, "Short.", "Коротко.", Cond())
+    b = build_example(tok, "A much longer input sentence here.", "Гораздо более длинное предложение здесь.", Cond())
+    batch = collate([a, b], tok.pad_token_id, pad_to=48)
+    assert batch.input_ids.shape == (2, 48)
+    assert batch.attention_mask.sum(dim=1).tolist() == [len(a.input_ids), len(b.input_ids)]
+    got = target_bits(tiny_model, batch, None)
+    assert abs(got[0].item() - _manual_bits(tiny_model, a.input_ids, a.target_mask)) < 1e-3
+    assert abs(got[1].item() - _manual_bits(tiny_model, b.input_ids, b.target_mask)) < 1e-3
+
+
+def test_collate_pad_to_rounds_up_to_a_multiple_when_longer(tok):
+    b = build_example(tok, "A much longer input sentence here.", "Гораздо более длинное предложение здесь.", Cond())
+    batch = collate([b], tok.pad_token_id, pad_to=4)
+    n = len(b.input_ids)
+    assert batch.input_ids.shape[1] == ((n + 3) // 4) * 4 >= n

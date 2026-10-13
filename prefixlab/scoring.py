@@ -31,8 +31,12 @@ class Batch:
         return int(self.target_mask.sum().item())
 
 
-def collate(examples, pad_id: int) -> Batch:
+def collate(examples, pad_id: int, pad_to: int | None = None) -> Batch:
+    """Right-pad to the longest example, or, with `pad_to`, to the next multiple of `pad_to`.
+    Fixed shapes matter on backends that compile per shape (MPS)."""
     T = max(len(e.input_ids) for e in examples)
+    if pad_to:
+        T = ((T + pad_to - 1) // pad_to) * pad_to
     B = len(examples)
     ids = torch.full((B, T), pad_id, dtype=torch.long)
     attn = torch.zeros((B, T), dtype=torch.long)

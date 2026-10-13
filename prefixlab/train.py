@@ -27,6 +27,7 @@ class TrainCfg:
     beta: float = 0.0  # weight on the prefix KL (variational prefixes)
     sample: bool = True  # variational: inject posterior noise during training
     eval_batch_size: int = 32
+    pad_to: int | None = None  # bucket padded length to a multiple (fixed shapes for MPS)
 
 
 @dataclass
@@ -55,11 +56,12 @@ def _device_of(model) -> torch.device:
 
 
 @torch.no_grad()
-def evaluate(model, prefix, examples, pad_id: int, batch_size: int = 32, sample: bool = False) -> EvalResult:
+def evaluate(model, prefix, examples, pad_id: int, batch_size: int = 32, sample: bool = False,
+             pad_to: int | None = None) -> EvalResult:
     model.eval()
     total, n_tok, per_ex, per_tok = 0.0, 0, [], []
     for i in range(0, len(examples), batch_size):
-        batch = collate(examples[i : i + batch_size], pad_id)
+        batch = collate(examples[i : i + batch_size], pad_id, pad_to)
         pe = prefix(batch.input_ids.shape[0], sample=sample) if prefix is not None else None
         bits = target_bits(model, batch, pe)
         per_ex.extend(bits.tolist())
@@ -70,13 +72,13 @@ def evaluate(model, prefix, examples, pad_id: int, batch_size: int = 32, sample:
 
 
 @torch.no_grad()
-def copy_split_bits(model, prefix, examples, pad_id: int, batch_size: int = 32) -> dict:
+def copy_split_bits(model, prefix, examples, pad_id: int, batch_size: int = 32, pad_to: int | None = None) -> dict:
     """Total test bits split into copyable and non-copyable target tokens."""
     bits_c = bits_n = 0.0
     n_c = n_n = 0
     for i in range(0, len(examples), batch_size):
         chunk = examples[i : i + batch_size]
-        batch = collate(chunk, pad_id)
+        batch = collate(chunk, pad_id, pad_to)
         pe = prefix(batch.input_ids.shape[0], sample=False) if prefix is not None else None
         pt = target_bits_per_token(model, batch, pe).cpu()
         cm = torch.zeros_like(batch.target_mask)
@@ -120,7 +122,7 @@ def train_prefix(model, prefix, train_examples, dev_examples, pad_id: int, cfg: 
         if len(order) < cfg.batch_size:
             order += torch.randperm(len(train_examples), generator=gen).tolist()
         idx, order = order[: cfg.batch_size], order[cfg.batch_size :]
-        return collate([train_examples[i] for i in idx], pad_id)
+        return collate([train_examples[i] for i in idx], pad_id, cfg.pad_to)
 
     history: list[dict] = []
     best_bits, best_state, best_step = math.inf, None, -1
@@ -137,7 +139,7 @@ def train_prefix(model, prefix, train_examples, dev_examples, pad_id: int, cfg: 
         sched.step()
         running += loss.item(); n_running += 1
         if step % cfg.eval_every == 0 or step == cfg.steps:
-            ev = evaluate(model, prefix, dev_examples, pad_id, cfg.eval_batch_size, sample=False)
+            ev = evaluate(model, prefix, dev_examples, pad_id, cfg.eval_batch_size, sample=False, pad_to=cfg.pad_to)
             entry = {
                 "step": step,
                 "train_nats_per_token": running / max(n_running, 1),
