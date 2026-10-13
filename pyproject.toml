@@ -27,5 +27,6 @@ include = ["prefixlab*"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
+pythonpath = ["."]
 addopts = "-q -p no:cacheprovider"
 filterwarnings = ["ignore::UserWarning", "ignore::DeprecationWarning"]
