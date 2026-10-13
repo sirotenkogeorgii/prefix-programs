@@ -101,3 +101,66 @@ class VariationalPrefix(nn.Module):
         p = torch.distributions.Normal(self.prior_mu.expand_as(self.mu), torch.exp(self.prior_log_sigma).expand_as(self.mu))
         z = q.sample((n,))
         return (q.log_prob(z) - p.log_prob(z)).sum(dim=(-1, -2)).mean()
+
+
+class HierarchicalPrefix(nn.Module):
+    """Shared centre with per-member deviations: prefix(m) = centre + dev[m].
+
+    centre ~ q(centre) with KL to the global prior; dev[m] ~ q(dev[m]) with KL to N(0, tau^2 I).
+    The centre's KL is the shared (e.g. task) bits, each deviation's KL the member-specific
+    (e.g. language) bits. Reverse nesting is the same class with members = tasks.
+    """
+
+    def __init__(
+        self,
+        k: int,
+        d: int,
+        members: list[str],
+        prior: tuple[torch.Tensor, torch.Tensor],
+        tau: float,
+        init_centre: torch.Tensor | None = None,
+        init_log_sigma: float = -2.0,
+    ):
+        super().__init__()
+        prior_mu, prior_log_sigma = prior
+        centre = init_centre.clone().float() if init_centre is not None else prior_mu.detach().float().expand(k, d).clone()
+        self.centre_mu = nn.Parameter(centre)
+        self.centre_log_sigma = nn.Parameter(torch.full((k, d), float(init_log_sigma)))
+        self.dev_mu = nn.ParameterDict({m: nn.Parameter(torch.zeros(k, d)) for m in members})
+        self.dev_log_sigma = nn.ParameterDict({m: nn.Parameter(torch.full((k, d), float(init_log_sigma))) for m in members})
+        self.register_buffer("prior_mu", prior_mu.detach().float().clone())
+        self.register_buffer("prior_log_sigma", prior_log_sigma.detach().float().clone())
+        self.register_buffer("log_tau", torch.tensor(math.log(float(tau))))
+        self.members = list(members)
+
+    @property
+    def k(self) -> int:
+        return self.centre_mu.shape[0]
+
+    def member_mean(self, member: str) -> torch.Tensor:
+        return self.centre_mu + self.dev_mu[member]
+
+    def forward(self, member: str, batch_size: int, sample: bool = False) -> torch.Tensor:
+        z = self.member_mean(member)
+        if sample:
+            z = z + torch.exp(self.centre_log_sigma) * torch.randn_like(z) + torch.exp(self.dev_log_sigma[member]) * torch.randn_like(z)
+        return z.unsqueeze(0).expand(batch_size, -1, -1)
+
+    @staticmethod
+    def _kl(mu, log_sigma, prior_mu, prior_log_sigma) -> torch.Tensor:
+        s2 = torch.exp(2 * log_sigma)
+        s02 = torch.exp(2 * prior_log_sigma)
+        return ((prior_log_sigma - log_sigma) + (s2 + (mu - prior_mu) ** 2) / (2 * s02) - 0.5).sum()
+
+    def kl_centre_nats(self) -> torch.Tensor:
+        return self._kl(self.centre_mu, self.centre_log_sigma, self.prior_mu, self.prior_log_sigma)
+
+    def kl_dev_nats(self) -> dict[str, torch.Tensor]:
+        zero = torch.zeros((), device=self.centre_mu.device)
+        return {m: self._kl(self.dev_mu[m], self.dev_log_sigma[m], zero, self.log_tau) for m in self.members}
+
+    def kl_centre_bits(self) -> torch.Tensor:
+        return self.kl_centre_nats() / LN2
+
+    def kl_dev_bits(self) -> dict[str, torch.Tensor]:
+        return {m: v / LN2 for m, v in self.kl_dev_nats().items()}

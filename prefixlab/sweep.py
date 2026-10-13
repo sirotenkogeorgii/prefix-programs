@@ -6,11 +6,11 @@ with test bits and token counts per example) for bootstrap intervals later.
 from __future__ import annotations
 
 import json
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from pathlib import Path
 
 from .floor import FloorCfg, train_lora_floor
-from .prefix import SoftPrefix
+from .prefix import SoftPrefix, VariationalPrefix, gaussian_prior_from_embeddings
 from .results import ResultsTable, save_prefix
 from .tasks import Cell
 from .train import TrainCfg, copy_split_bits, evaluate, train_prefix
@@ -22,13 +22,18 @@ class RunSpec:
     k: int
     seed: int
     cond: str = "none"  # which information the context already supplies: none | lang | task | both
-    design: str = "A"  # A = plain sweep; flat / hier = variational; none = no-prefix; floor = LoRA
+    design: str = "A"  # A = plain sweep; flat = variational with global prior; none = no-prefix; floor = LoRA
+    beta: float = 0.0  # KL weight (flat only)
 
     def key(self) -> dict:
-        return dict(cell=self.cell.key(), k=self.k, seed=self.seed, cond=self.cond, design=self.design)
+        return dict(cell=self.cell.key(), k=self.k, seed=self.seed, cond=self.cond, design=self.design, beta=self.beta)
 
     def run_id(self) -> str:
-        return f"{self.design}_{self.cell.key()}_{self.cond}_k{self.k}_s{self.seed}"
+        tag = f"_b{self.beta:g}" if self.design == "flat" else ""
+        return f"{self.design}_{self.cell.key()}_{self.cond}_k{self.k}_s{self.seed}{tag}"
+
+
+N_EVAL_SAMPLES = 8
 
 
 def _common(model, data) -> dict:
@@ -62,7 +67,14 @@ def run_one(model, tok, spec: RunSpec, data: dict, cfg: TrainCfg, results: Resul
     if results.is_done(**key):
         return None
     E = model.get_input_embeddings().weight
-    prefix = SoftPrefix.from_vocab(E, spec.k, spec.seed)
+    if spec.design == "A":
+        prefix = SoftPrefix.from_vocab(E, spec.k, spec.seed)
+        cfg = replace(cfg, beta=0.0, sample=False)
+    elif spec.design == "flat":
+        prefix = VariationalPrefix.from_vocab(E, spec.k, spec.seed, prior=gaussian_prior_from_embeddings(E))
+        cfg = replace(cfg, beta=spec.beta, sample=True)
+    else:
+        raise ValueError(f"run_one handles designs A and flat, not {spec.design}")
     res = train_prefix(model, prefix, data["train"], data["dev"], tok.pad_token_id, cfg)
     prefix.load_state_dict(res.best_state)
     test = evaluate(model, prefix, data["test"], tok.pad_token_id, cfg.eval_batch_size)
@@ -76,10 +88,14 @@ def run_one(model, tok, spec: RunSpec, data: dict, cfg: TrainCfg, results: Resul
         "best_step": res.best_step,
         "dev_bits_per_token": res.best_dev_bits_per_token,
         **_test_fields(test, copy_split_bits(model, prefix, data["test"], tok.pad_token_id, cfg.eval_batch_size)),
-        "kl_bits": 0.0,
+        "kl_bits": prefix.kl_bits().item(),
         "ckpt": str(ckpt),
         "per_example": _save_per_example(results, spec.run_id(), test.per_example_bits, test.per_example_tokens),
     }
+    if spec.design == "flat":
+        sampled = [evaluate(model, prefix, data["test"], tok.pad_token_id, cfg.eval_batch_size, sample=True).bits_per_token
+                   for _ in range(N_EVAL_SAMPLES)]
+        row["test_bits_per_token_sampled"] = sum(sampled) / len(sampled)
     results.append(row)
     return row
 
