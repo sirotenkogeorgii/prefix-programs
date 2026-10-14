@@ -26,12 +26,15 @@ class ComposeSpec:
     cond: str = "none"
     holdout: tuple = ()  # cells scored zero-shot, excluded from training
 
+    def holdout_tag(self) -> str:
+        return "+".join(sorted(c.key() for c in self.holdout)) or "none"
+
     def key(self) -> dict:
         return dict(design="compose", k=self.k_task + self.k_lang, k_task=self.k_task, k_lang=self.k_lang,
-                    seed=self.seed, cond=self.cond)
+                    seed=self.seed, cond=self.cond, holdout=self.holdout_tag())
 
     def run_id(self) -> str:
-        return f"compose_{self.cond}_kt{self.k_task}_kl{self.k_lang}_s{self.seed}"
+        return f"compose_{self.cond}_kt{self.k_task}_kl{self.k_lang}_s{self.seed}_h{self.holdout_tag()}"
 
 
 class ComposedPrefix(nn.Module):

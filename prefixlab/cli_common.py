@@ -6,6 +6,7 @@ import random
 
 from .data.flores import load_flores_rows
 from .model import load_model
+from .results import ResultsTable
 from .tasks import LANGS, Cell, cell_examples, cell_pairs
 from .train import TrainCfg
 
@@ -89,3 +90,36 @@ def cell_pairs_from_args(args, cell: Cell, dev_rows, devtest_rows) -> dict:
 
 def cell_data_from_args(args, tok, cell: Cell, cond: str, dev_rows, devtest_rows) -> dict:
     return cell_examples(tok, cell_pairs_from_args(args, cell, dev_rows, devtest_rows), cell, cond)
+
+
+def parse_cells(s: str) -> list[Cell]:
+    """'translation-ru,recall-de' -> [Cell, ...]; validates task and language names."""
+    out = []
+    for item in csv_list(s):
+        task, lang = item.rsplit("-", 1)
+        assert task in ("translation", "recall", "continuation") and lang in LANGS and valid_cell(task, lang), item
+        out.append(Cell(task, lang))
+    return out
+
+
+def all_cells(tasks: list[str], langs: list[str]) -> list[Cell]:
+    return [Cell(t, l) for t in tasks for l in langs if valid_cell(t, l)]
+
+
+def find_row(results_path, **key) -> dict:
+    """The last row of a results table matching `key` (string comparison, as in ResultsTable.is_done)."""
+    df = ResultsTable(results_path).load()
+    if df.empty or any(c not in df.columns for c in key):
+        raise LookupError(f"{results_path}: no rows with columns {sorted(key)}")
+    mask = df.index == df.index
+    for c, v in key.items():
+        mask &= (df[c].astype(str) == str(v)).to_numpy()
+    rows = df[mask]
+    if rows.empty:
+        raise LookupError(f"{results_path}: no row for {key}")
+    return rows.iloc[-1].to_dict()
+
+
+def find_ckpt(results_path, **key) -> str:
+    return str(find_row(results_path, **key)["ckpt"])
+

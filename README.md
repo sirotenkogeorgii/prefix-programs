@@ -10,6 +10,10 @@ separable? See `Prefix_Project_Proposal_v1.md` for the design and hypotheses.
   LoRA floors, prequential coding, warm-start distances, regime-2 input compression, window patching, analysis.
 - `scripts/run_sweep.py` — Design A sweep (`--design flat` for the variational rate), baselines, floors.
 - `scripts/run_hier.py` — hierarchical design (`--group task` or `--group lang`).
+- `scripts/run_compose.py` — tied task + language parts with held-out cells (composition cost, zero-shot composition).
+- `scripts/run_distance.py` — warm-start prequential distance between all cells at one k (prefixes from `results/sweep.csv`).
+- `scripts/run_regime2.py` — regime 2: per-example input compression into m vectors, with or without the shared prefix.
+- `scripts/run_mechanism.py` — per-block window patching of the prefix positions (Design A, hierarchical centre and deviation).
 - `scripts/colab_bootstrap.sh` — install, log in, fetch mLAMA, link results to Drive, run tests.
 - `results/*.csv` — one row per finished run; every script skips rows already present. `results/per_example/` holds
   per-example test bits for bootstrap intervals.

@@ -33,7 +33,13 @@ class ResultsTable:
         return bool(mask.any())
 
     def append(self, row: dict) -> None:
-        df = pd.concat([self.load(), pd.DataFrame([row])], ignore_index=True)
+        self.append_many([row])
+
+    def append_many(self, rows: list[dict]) -> None:
+        """One atomic write for a group of rows that must land together (e.g. all layers of a probe)."""
+        if not rows:
+            return
+        df = pd.concat([self.load(), pd.DataFrame(rows)], ignore_index=True)
         self.path.parent.mkdir(parents=True, exist_ok=True)
         fd, tmp = tempfile.mkstemp(dir=self.path.parent, suffix=".tmp")
         os.close(fd)
