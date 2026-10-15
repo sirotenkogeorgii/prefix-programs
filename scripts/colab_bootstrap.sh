@@ -29,7 +29,7 @@ fi
 if [ -d results_sync ] && ! ls results/*.csv >/dev/null 2>&1; then
   mkdir -p results checkpoints
   cp results_sync/*.csv results/ 2>/dev/null || true
-  [ -d results_sync/per_example ] && cp -r results_sync/per_example results/
+  for d in results_sync/*/; do [ "$(basename "$d")" != checkpoints ] && cp -r "$d" results/; done
   [ -d results_sync/checkpoints ] && cp -r results_sync/checkpoints/. checkpoints/
   echo "restored results and checkpoints from results_sync/"
 fi

@@ -13,7 +13,7 @@ from pathlib import Path
 from .joint import BoundPrefix, JointResult, train_joint
 from .prefix import HierarchicalPrefix, _sample_vocab_rows, gaussian_prior_from_embeddings
 from .results import ResultsTable, save_prefix
-from .sweep import N_EVAL_SAMPLES, _common, _save_per_example, _test_fields
+from .sweep import N_EVAL_SAMPLES, _common, _save_history, _save_per_example, _test_fields
 from .tasks import Cell
 from .train import TrainCfg, copy_split_bits, evaluate
 
@@ -26,12 +26,15 @@ class HierSpec:
     cond: str = "none"
     beta: float = 1.0
     tau: float = 1.0
+    tau_units: str = "prior"  # "prior": tau in units of the prior sigma; "abs": absolute embedding units (old runs)
 
     def key(self) -> dict:
-        return dict(design="hier", group=self.group, k=self.k, seed=self.seed, cond=self.cond, beta=self.beta, tau=self.tau)
+        return dict(design="hier", group=self.group, k=self.k, seed=self.seed, cond=self.cond, beta=self.beta,
+                    tau=self.tau, tau_units=self.tau_units)
 
     def run_id(self) -> str:
-        return f"hier_{self.group.replace(':', '-')}_{self.cond}_k{self.k}_s{self.seed}_b{self.beta:g}_t{self.tau:g}"
+        return (f"hier_{self.group.replace(':', '-')}_{self.cond}_k{self.k}_s{self.seed}_b{self.beta:g}"
+                f"_t{self.tau:g}{'p' if self.tau_units == 'prior' else 'a'}")
 
 
 class MemberView(BoundPrefix):
@@ -65,7 +68,7 @@ def run_hier(model, tok, spec: HierSpec, members: dict[str, Cell], data_by_membe
         return []
     E = model.get_input_embeddings().weight
     prefix = HierarchicalPrefix(spec.k, E.shape[1], members=list(members), prior=gaussian_prior_from_embeddings(E),
-                                tau=spec.tau, init_centre=_sample_vocab_rows(E, spec.k, spec.seed))
+                                tau=spec.tau, tau_units=spec.tau_units, init_centre=_sample_vocab_rows(E, spec.k, spec.seed))
     cfg = replace(cfg, beta=spec.beta, sample=True)
     res = train_hier(model, prefix, data_by_member, tok.pad_token_id, cfg)
     prefix.load_state_dict(res.best_state)
@@ -74,6 +77,7 @@ def run_hier(model, tok, spec: HierSpec, members: dict[str, Cell], data_by_membe
     kl_c = prefix.kl_centre_bits().item()
     kl_d = {m: v.item() for m, v in prefix.kl_dev_bits().items()}
     pad, bs = tok.pad_token_id, cfg.eval_batch_size
+    history = _save_history(results, spec.run_id(), res.history)
     rows = []
     for m, cell in todo.items():
         view, data = MemberView(prefix, m), data_by_member[m]
@@ -91,6 +95,7 @@ def run_hier(model, tok, spec: HierSpec, members: dict[str, Cell], data_by_membe
             "test_bits_per_token_sampled": sum(sampled) / len(sampled),
             "ckpt": str(ckpt),
             "per_example": _save_per_example(results, run_id, test.per_example_bits, test.per_example_tokens),
+            "history": history,
         }
         results.append(row)
         rows.append(row)

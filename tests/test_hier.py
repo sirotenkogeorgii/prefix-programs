@@ -1,5 +1,7 @@
 """Hierarchical design: one centre per group, one deviation per member, trained jointly."""
+import json
 import math
+from pathlib import Path
 
 from prefixlab.data.formats import Cond, build_example
 from prefixlab.hier import HierSpec, run_hier
@@ -34,5 +36,12 @@ def test_run_hier_writes_one_row_per_member_with_both_kl_terms(tok, tiny_model, 
         assert r["test_bits_per_token"] > 0 and r["dev_bits_per_token"] > 0
         assert r["kl_bits"] == r["kl_centre_bits"] + r["kl_dev_bits"]
     assert by_cell["translation-ru"]["kl_centre_bits"] == by_cell["translation-de"]["kl_centre_bits"]
-    assert results.is_done(cell="translation-ru", design="hier", group="task:translation", k=2, seed=0, cond="none", beta=1.0, tau=0.5)
+    assert all(r["tau_units"] == "prior" and r["run_id"].startswith("hier_task-translation_none_k2_s0_b1_t0.5p_") for r in rows)
+    hist = json.loads(Path(rows[0]["history"]).read_text())
+    assert [h["step"] for h in hist] == [3, 6] and all("kl_centre_bits" in h and "kl_dev_bits" in h for h in hist)
+    assert results.is_done(cell="translation-ru", design="hier", group="task:translation", k=2, seed=0, cond="none",
+                           beta=1.0, tau=0.5, tau_units="prior")
+    # the same tau in absolute units is a different run
+    assert not results.is_done(cell="translation-ru", design="hier", group="task:translation", k=2, seed=0, cond="none",
+                               beta=1.0, tau=0.5, tau_units="abs")
     assert run_hier(tiny_model, tok, spec, members, data, cfg, results, tmp_path / "ckpt") == []

@@ -53,6 +53,16 @@ def _save_per_example(results: ResultsTable, run_id: str, bits: list, tokens: li
     return str(p)
 
 
+def _save_history(results: ResultsTable, run_id: str, history: list) -> str:
+    """Per-eval-step trajectory (dev bits/token, KL bits, ...) so rate-distortion points other than the selected
+    checkpoint can be examined post hoc."""
+    d = results.path.parent / "history"
+    d.mkdir(parents=True, exist_ok=True)
+    p = d / f"{run_id}.json"
+    p.write_text(json.dumps(history))
+    return str(p)
+
+
 def _test_fields(test, split: dict) -> dict:
     return {
         "test_bits_per_token": test.bits_per_token,
@@ -91,6 +101,7 @@ def run_one(model, tok, spec: RunSpec, data: dict, cfg: TrainCfg, results: Resul
         "kl_bits": prefix.kl_bits().item(),
         "ckpt": str(ckpt),
         "per_example": _save_per_example(results, spec.run_id(), test.per_example_bits, test.per_example_tokens),
+        "history": _save_history(results, spec.run_id(), res.history),
     }
     if spec.design == "flat":
         sampled = [evaluate(model, prefix, data["test"], tok.pad_token_id, cfg.eval_batch_size, sample=True,

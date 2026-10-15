@@ -59,13 +59,19 @@ class VariationalPrefix(nn.Module):
         prior_mu: torch.Tensor,
         prior_log_sigma: torch.Tensor,
         init_mu: torch.Tensor | None = None,
-        init_log_sigma: float = -2.0,
+        init_log_sigma: float | None = None,
     ):
+        """Posterior sigma starts at the prior sigma (per coordinate) unless `init_log_sigma` is given, so the
+        initial KL comes from the mean displacement only. (Runs before 2026-10-15 used log_sigma = -2, i.e. sigma
+        ~5x the embedding scale, and had to shrink ~50k bits of KL first.)"""
         super().__init__()
         mu = init_mu.clone().float() if init_mu is not None else prior_mu.detach().float().expand(k, d).clone()
         assert mu.shape == (k, d)
         self.mu = nn.Parameter(mu)
-        self.log_sigma = nn.Parameter(torch.full((k, d), float(init_log_sigma)))
+        if init_log_sigma is None:
+            self.log_sigma = nn.Parameter(prior_log_sigma.detach().float().expand(k, d).clone())
+        else:
+            self.log_sigma = nn.Parameter(torch.full((k, d), float(init_log_sigma)))
         self.register_buffer("prior_mu", prior_mu.detach().float().clone())
         self.register_buffer("prior_log_sigma", prior_log_sigma.detach().float().clone())
 
@@ -106,9 +112,13 @@ class VariationalPrefix(nn.Module):
 class HierarchicalPrefix(nn.Module):
     """Shared centre with per-member deviations: prefix(m) = centre + dev[m].
 
-    centre ~ q(centre) with KL to the global prior; dev[m] ~ q(dev[m]) with KL to N(0, tau^2 I).
+    centre ~ q(centre) with KL to the global prior; dev[m] ~ q(dev[m]) with KL to N(0, (tau * s)^2 I),
+    where s is the prior sigma per coordinate when tau_units == "prior" (default: tau = 1 means a deviation is
+    as expensive per unit as a whole prefix) and s = 1 when tau_units == "abs" (absolute embedding units; the
+    embedding scale is ~0.025, so tau = 1 there is a ~40x wider prior and deviations swallow the prefix).
     The centre's KL is the shared (e.g. task) bits, each deviation's KL the member-specific
     (e.g. language) bits. Reverse nesting is the same class with members = tasks.
+    Posterior sigmas start at their priors, so the deviations' initial KL is 0.
     """
 
     def __init__(
@@ -119,18 +129,25 @@ class HierarchicalPrefix(nn.Module):
         prior: tuple[torch.Tensor, torch.Tensor],
         tau: float,
         init_centre: torch.Tensor | None = None,
-        init_log_sigma: float = -2.0,
+        tau_units: str = "prior",
     ):
         super().__init__()
+        if tau_units not in ("prior", "abs"):
+            raise ValueError(f"tau_units must be 'prior' or 'abs', got {tau_units!r}")
         prior_mu, prior_log_sigma = prior
+        prior_log_sigma = prior_log_sigma.detach().float().clone()
+        log_tau = math.log(float(tau))
+        dev_prior = prior_log_sigma + log_tau if tau_units == "prior" else torch.full_like(prior_log_sigma, log_tau)
         centre = init_centre.clone().float() if init_centre is not None else prior_mu.detach().float().expand(k, d).clone()
         self.centre_mu = nn.Parameter(centre)
-        self.centre_log_sigma = nn.Parameter(torch.full((k, d), float(init_log_sigma)))
+        self.centre_log_sigma = nn.Parameter(prior_log_sigma.expand(k, d).clone())
         self.dev_mu = nn.ParameterDict({m: nn.Parameter(torch.zeros(k, d)) for m in members})
-        self.dev_log_sigma = nn.ParameterDict({m: nn.Parameter(torch.full((k, d), float(init_log_sigma))) for m in members})
+        self.dev_log_sigma = nn.ParameterDict({m: nn.Parameter(dev_prior.expand(k, d).clone()) for m in members})
         self.register_buffer("prior_mu", prior_mu.detach().float().clone())
-        self.register_buffer("prior_log_sigma", prior_log_sigma.detach().float().clone())
-        self.register_buffer("log_tau", torch.tensor(math.log(float(tau))))
+        self.register_buffer("prior_log_sigma", prior_log_sigma)
+        self.register_buffer("log_tau", torch.tensor(log_tau))
+        self.register_buffer("dev_prior_log_sigma", dev_prior)
+        self.tau_units = tau_units
         self.members = list(members)
 
     @property
@@ -157,7 +174,7 @@ class HierarchicalPrefix(nn.Module):
 
     def kl_dev_nats(self) -> dict[str, torch.Tensor]:
         zero = torch.zeros((), device=self.centre_mu.device)
-        return {m: self._kl(self.dev_mu[m], self.dev_log_sigma[m], zero, self.log_tau) for m in self.members}
+        return {m: self._kl(self.dev_mu[m], self.dev_log_sigma[m], zero, self.dev_prior_log_sigma) for m in self.members}
 
     def kl_centre_bits(self) -> torch.Tensor:
         return self.kl_centre_nats() / LN2

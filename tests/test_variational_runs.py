@@ -49,9 +49,45 @@ def test_hierarchical_prefix_shapes_and_kl_decomposition():
     assert set(hp.kl_dev_nats().keys()) == {"ru", "de"}
     with torch.no_grad():
         hp.dev_mu["ru"].zero_()
-        hp.dev_log_sigma["ru"].fill_(math.log(0.5))  # posterior == prior N(0, tau^2)
+        hp.dev_log_sigma["ru"].fill_(math.log(0.5))  # posterior == prior N(0, tau^2) (prior sigma is 1 here)
+        hp.dev_mu["de"].fill_(0.3)
     assert hp.kl_dev_nats()["ru"].item() == pytest.approx(0.0, abs=1e-6)
     assert hp.kl_dev_nats()["de"].item() > 0
+
+
+def test_tau_is_in_prior_sigma_units_and_deviations_start_at_zero_kl():
+    d, k = 6, 2
+    prior = (torch.zeros(d), torch.full((d,), math.log(0.025)))  # embedding-scale prior
+    hp = HierarchicalPrefix(k, d, members=["ru"], prior=prior, tau=0.5)
+    assert hp.tau_units == "prior"
+    assert torch.allclose(hp.dev_log_sigma["ru"], torch.full((k, d), math.log(0.5 * 0.025)))
+    assert torch.allclose(hp.centre_log_sigma, torch.full((k, d), math.log(0.025)))
+    assert hp.kl_dev_nats()["ru"].item() == pytest.approx(0.0, abs=1e-6)
+    # moving a deviation by one prior sigma costs the same under tau = 1 as moving the centre by one prior sigma
+    hp1 = HierarchicalPrefix(k, d, members=["ru"], prior=prior, tau=1.0)
+    with torch.no_grad():
+        hp1.dev_mu["ru"].fill_(0.025)
+        hp1.centre_mu.fill_(0.025)
+    assert hp1.kl_dev_nats()["ru"].item() == pytest.approx(hp1.kl_centre_nats().item(), rel=1e-5)
+    # absolute units: tau = 1 is a 40x wider prior, so the same displacement is far cheaper
+    hpa = HierarchicalPrefix(k, d, members=["ru"], prior=prior, tau=1.0, tau_units="abs")
+    assert torch.allclose(hpa.dev_log_sigma["ru"], torch.zeros(k, d))
+    with torch.no_grad():
+        hpa.dev_mu["ru"].fill_(0.025)
+    assert hpa.kl_dev_nats()["ru"].item() < 0.01 * hp1.kl_dev_nats()["ru"].item()
+    with pytest.raises(ValueError):
+        HierarchicalPrefix(k, d, members=["ru"], prior=prior, tau=1.0, tau_units="relative")
+
+
+def test_variational_prefix_sigma_starts_at_prior_sigma():
+    from prefixlab.prefix import VariationalPrefix
+    d = 5
+    prior = (torch.zeros(d), torch.full((d,), math.log(0.03)))
+    vp = VariationalPrefix(2, d, prior[0], prior[1])
+    assert torch.allclose(vp.log_sigma, torch.full((2, d), math.log(0.03)))
+    assert vp.kl_nats().item() == pytest.approx(0.0, abs=1e-6)  # mu == prior mu, sigma == prior sigma
+    vp2 = VariationalPrefix(2, d, prior[0], prior[1], init_log_sigma=-2.0)
+    assert torch.allclose(vp2.log_sigma, torch.full((2, d), -2.0))
 
 
 def test_hierarchical_sample_adds_noise_from_both_levels():

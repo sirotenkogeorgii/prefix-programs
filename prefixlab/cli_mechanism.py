@@ -24,6 +24,7 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("--hier-results", default="", help="comma-separated hierarchical tables (task and/or lang grouping)")
     p.add_argument("--hier-beta", type=float, default=1.0)
     p.add_argument("--hier-tau", type=float, default=1.0)
+    p.add_argument("--hier-tau-units", default="prior", choices=["prior", "abs"])
     p.add_argument("--max-examples", type=int, default=256, help="seeded subsample of the test split per cell")
     p.add_argument("--eval-batch-size", type=int, default=32)
     p.add_argument("--pad-to", type=int, default=None)
@@ -48,14 +49,15 @@ def main(argv=None, model=None, tok=None) -> str:
         probes["A"] = (rand, load_prefix(SoftPrefix(args.k, E.shape[1]), ckpt).weight.detach())
         for table in csv_list(args.hier_results):
             row = find_row(table, design="hier", cell=c.key(), k=args.k, seed=args.seed, cond=args.cond,
-                           beta=args.hier_beta, tau=args.hier_tau)
+                           beta=args.hier_beta, tau=args.hier_tau, tau_units=args.hier_tau_units)
             kind = str(row["group"]).split(":")[0]
             centre, member = hier_parts(row["ckpt"], str(row["member"]))
             probes[f"hier_{kind}_centre"] = (rand, centre)
             probes[f"hier_{kind}_dev"] = (centre, member)
         t0 = time.time()
         rows = run_mechanism(model, tok, c, examples, probes, args.k, args.seed, args.cond, results,
-                             args.eval_batch_size, args.pad_to, extra={"hier_beta": args.hier_beta, "hier_tau": args.hier_tau})
+                             args.eval_batch_size, args.pad_to, extra={"hier_beta": args.hier_beta, "hier_tau": args.hier_tau,
+                                    "hier_tau_units": args.hier_tau_units})
         for name in sorted({r["probe"] for r in rows}):
             best = max((r for r in rows if r["probe"] == name), key=lambda r: r["recovered_bits_per_token"])
             print(f"[mechanism {c.key()} k={args.k}] {name}: recipient {best['recipient_bits_per_token']:.3f} -> donor "
