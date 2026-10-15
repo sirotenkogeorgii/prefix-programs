@@ -8,9 +8,9 @@ dist/
 .DS_Store
 .ipynb_checkpoints/
 .superpowers/
-checkpoints/
+/checkpoints/
 sources/
 hf_cache/
 data_raw/
-results/
+/results/
 results_local/
