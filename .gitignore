@@ -12,3 +12,5 @@ checkpoints/
 sources/
 hf_cache/
 data_raw/
+results/
+results_local/

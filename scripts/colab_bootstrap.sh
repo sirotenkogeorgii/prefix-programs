@@ -33,4 +33,11 @@ if [ -d results_sync ] && ! ls results/*.csv >/dev/null 2>&1; then
   [ -d results_sync/checkpoints ] && cp -r results_sync/checkpoints/. checkpoints/
   echo "restored results and checkpoints from results_sync/"
 fi
+if ! ls results/*.csv >/dev/null 2>&1 && [ -n "${SEED_RESULTS_DIR:-}" ] && [ -d "$SEED_RESULTS_DIR/results" ]; then
+  cp -r "$SEED_RESULTS_DIR/results/." results/ && cp -r "$SEED_RESULTS_DIR/checkpoints/." checkpoints/ 2>/dev/null || true
+  echo "seeded results and checkpoints from $SEED_RESULTS_DIR"
+fi
+if ! ls results/*.csv >/dev/null 2>&1; then
+  echo "WARNING: no results tables found; every run will start from scratch"
+fi
 python -m pytest -q -x 2>&1 | tail -1
