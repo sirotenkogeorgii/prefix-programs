@@ -25,4 +25,12 @@ if [ -n "${RESULTS_DIR:-}" ]; then
   ln -s "$RESULTS_DIR/checkpoints" checkpoints
   echo "results -> $RESULTS_DIR/results"
 fi
+# a results dir with no tables yet (e.g. local disk after a Drive failure) is restored from the repo copy made by the sync cell
+if [ -d results_sync ] && ! ls results/*.csv >/dev/null 2>&1; then
+  mkdir -p results checkpoints
+  cp results_sync/*.csv results/ 2>/dev/null || true
+  [ -d results_sync/per_example ] && cp -r results_sync/per_example results/
+  [ -d results_sync/checkpoints ] && cp -r results_sync/checkpoints/. checkpoints/
+  echo "restored results and checkpoints from results_sync/"
+fi
 python -m pytest -q -x 2>&1 | tail -1
