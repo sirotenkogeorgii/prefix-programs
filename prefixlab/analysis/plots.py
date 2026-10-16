@@ -124,7 +124,9 @@ def plot_compose(ho: pd.DataFrame):
     x = np.arange(len(ho))
     ax.bar(x - 0.2, ho.D_assembled, 0.4, label="assembled (held out)")
     ax.bar(x + 0.2, ho.D_trained, 0.4, label="trained on")
-    ax.set_xticks(x); ax.set_xticklabels([f"{c}\n{h}" for c, h in zip(ho.cell, ho.holdout)], fontsize=6, rotation=0)
+    short = lambda c: c.replace("translation", "tr").replace("recall", "rc").replace("continuation", "ct")
+    ax.set_xticks(x); ax.set_xticklabels([f"{short(c)} {int(kt)}+{int(kl)}\nheld out with {short(h).replace(short(c), '').strip('+')}"
+                                          for c, h, kt, kl in zip(ho.cell, ho.holdout, ho.k_task, ho.k_lang)], fontsize=6, rotation=30, ha="right")
     ax.axhline(1.0, color="grey", lw=0.6, ls="--"); ax.set_ylabel("D̂"); ax.legend(fontsize=8); ax.grid(axis="y", alpha=0.3)
     fig.tight_layout()
     return fig
