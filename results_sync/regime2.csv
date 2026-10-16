@@ -1,2 +1,8 @@
 design,cell,m,k,cond,seed,run_id,n_examples,steps,lr,bits_per_token_after,bits_per_token_no_input,bits_per_token_real_input,n_tokens,per_example
-regime2,translation-ru,1,0,none,0,regime2_translation-ru_none_k0_m1_s0,100,200,0.1,1.2673613052901231,3.497675322083006,1.9732657424175202,4893,results/per_example/regime2_translation-ru_none_k0_m1_s0.json
+regime2,translation-ru,1,0,none,0,regime2_translation-ru_none_k0_m1_s0,100,200,0.1,1.2673613052901231,3.497675322083006,1.97326574241752,4893,results/per_example/regime2_translation-ru_none_k0_m1_s0.json
+regime2,translation-ru,2,0,none,0,regime2_translation-ru_none_k0_m2_s0,100,200,0.1,0.138406206650978,3.497675322083006,1.97326574241752,4893,results/per_example/regime2_translation-ru_none_k0_m2_s0.json
+regime2,translation-ru,4,0,none,0,regime2_translation-ru_none_k0_m4_s0,100,200,0.1,0.0113859931317278,3.497675322083006,1.97326574241752,4893,results/per_example/regime2_translation-ru_none_k0_m4_s0.json
+regime2,translation-ru,8,0,none,0,regime2_translation-ru_none_k0_m8_s0,100,200,0.1,0.0031937239006399,3.497675322083006,1.97326574241752,4893,results/per_example/regime2_translation-ru_none_k0_m8_s0.json
+regime2,translation-de,1,0,none,0,regime2_translation-de_none_k0_m1_s0,100,200,0.1,1.4422033173859332,4.312106049273442,2.53522093928243,4205,results/per_example/regime2_translation-de_none_k0_m1_s0.json
+regime2,translation-de,2,0,none,0,regime2_translation-de_none_k0_m2_s0,100,200,0.1,0.1322956216108501,4.312106049273442,2.53522093928243,4205,results/per_example/regime2_translation-de_none_k0_m2_s0.json
+regime2,translation-de,4,0,none,0,regime2_translation-de_none_k0_m4_s0,100,200,0.1,0.00807868157614213,4.312106049273442,2.53522093928243,4205,results/per_example/regime2_translation-de_none_k0_m4_s0.json
