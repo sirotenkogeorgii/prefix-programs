@@ -22,6 +22,8 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("--taus", default="1")
     p.add_argument("--tau-units", default="prior", choices=["prior", "abs"],
                    help="prior: tau in units of the embedding prior sigma (default); abs: absolute units (pre-2026-10-15 runs)")
+    p.add_argument("--protocol", default="prereg", choices=["prereg", "corrected"],
+                   help="corrected: checkpoint by dev objective, dev scored with samples (pair with --lr 0.01)")
     p.set_defaults(results="results/hier.csv")
     return p
 
@@ -58,7 +60,7 @@ def main(argv=None, model=None, tok=None) -> str:
                 for seed in seeds:
                     for beta in betas:
                         for tau in taus:
-                            spec = HierSpec(group_name, k, seed, cond, beta, tau, args.tau_units)
+                            spec = HierSpec(group_name, k, seed, cond, beta, tau, args.tau_units, args.protocol)
                             t0 = time.time()
                             rows = run_hier(model, tok, spec, members, data, cfg, results, args.ckpt_dir)
                             label = f"[{group_name} {cond}] k={k} seed={seed} beta={beta:g} tau={tau:g}"

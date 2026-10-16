@@ -37,6 +37,9 @@ class BoundPrefix:
 def train_joint(model, module: torch.nn.Module, members: list, data_by_member: dict, pad_id: int, cfg: TrainCfg,
                 forward: Callable, kl_for: Callable | None = None, log_extra: Callable[[], dict] | None = None,
                 eval_members: list | None = None) -> JointResult:
+    """cfg.select == "objective" selects the checkpoint by the token-weighted dev bits/token plus beta times the
+    members' KL terms (kl_for, nats per token, converted to bits), i.e. the training objective on dev; cfg.dev_sample
+    scores dev with posterior samples. The defaults ("dev", False) are the preregistered rule."""
     torch.manual_seed(cfg.seed)
     gens = {m: torch.Generator().manual_seed(cfg.seed + i) for i, m in enumerate(members)}
     device = _device_of(model)
@@ -57,13 +60,18 @@ def train_joint(model, module: torch.nn.Module, members: list, data_by_member: d
     def dev_objective():
         bits = toks = 0.0
         per = {}
+        kl_term = 0.0
         for m in eval_members:
-            ev = evaluate(model, BoundPrefix(forward, m), data_by_member[m]["dev"], pad_id, cfg.eval_batch_size, pad_to=cfg.pad_to)
+            ev = evaluate(model, BoundPrefix(forward, m), data_by_member[m]["dev"], pad_id, cfg.eval_batch_size,
+                          sample=cfg.dev_sample, pad_to=cfg.pad_to)
             per[str(m)] = ev.bits_per_token
             bits += ev.bits_total; toks += ev.n_tokens
-        return bits / max(toks, 1), per
+            if kl_for is not None:
+                kl_term += ev.n_tokens * float(kl_for(m)) / math.log(2)  # member's KL rate in bits/token, weighted by its dev tokens
+        dev_bits = bits / max(toks, 1)
+        return dev_bits, per, dev_bits + cfg.beta * kl_term / max(toks, 1)
 
-    history, best, best_state, best_step = [], math.inf, None, -1
+    history, best_score, best, best_state, best_step = [], math.inf, math.inf, None, -1
     running, n_running = 0.0, 0
     for step in range(1, cfg.steps + 1):
         m = members[(step - 1) % len(members)]
@@ -79,13 +87,15 @@ def train_joint(model, module: torch.nn.Module, members: list, data_by_member: d
         sched.step()
         running += loss.item(); n_running += 1
         if step % cfg.eval_every == 0 or step == cfg.steps:
-            obj, per = dev_objective()
-            entry = {"step": step, "train_loss": running / max(n_running, 1), "dev_bits_per_token": obj, "per_member": per}
+            dev_bits, per, objective = dev_objective()
+            entry = {"step": step, "train_loss": running / max(n_running, 1), "dev_bits_per_token": dev_bits,
+                     "dev_objective": objective, "per_member": per}
             if log_extra is not None:
                 entry.update(log_extra())
             history.append(entry)
             running, n_running = 0.0, 0
-            if obj < best:
-                best, best_step = obj, step
+            score = objective if cfg.select == "objective" else dev_bits
+            if score < best_score:
+                best_score, best, best_step = score, dev_bits, step
                 best_state = {kk: v.detach().cpu().clone() for kk, v in module.state_dict().items()}
     return JointResult(best_state, best, best_step, history)

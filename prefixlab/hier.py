@@ -27,14 +27,15 @@ class HierSpec:
     beta: float = 1.0
     tau: float = 1.0
     tau_units: str = "prior"  # "prior": tau in units of the prior sigma; "abs": absolute embedding units (old runs)
+    protocol: str = "prereg"  # "prereg": checkpoint by mean-dev distortion; "corrected": by dev objective, dev on samples (run with --lr 0.01)
 
     def key(self) -> dict:
         return dict(design="hier", group=self.group, k=self.k, seed=self.seed, cond=self.cond, beta=self.beta,
-                    tau=self.tau, tau_units=self.tau_units)
+                    tau=self.tau, tau_units=self.tau_units, protocol=self.protocol)
 
     def run_id(self) -> str:
         return (f"hier_{self.group.replace(':', '-')}_{self.cond}_k{self.k}_s{self.seed}_b{self.beta:g}"
-                f"_t{self.tau:g}{'p' if self.tau_units == 'prior' else 'a'}")
+                f"_t{self.tau:g}{'p' if self.tau_units == 'prior' else 'a'}{'_c' if self.protocol == 'corrected' else ''}")
 
 
 class MemberView(BoundPrefix):
@@ -69,7 +70,8 @@ def run_hier(model, tok, spec: HierSpec, members: dict[str, Cell], data_by_membe
     E = model.get_input_embeddings().weight
     prefix = HierarchicalPrefix(spec.k, E.shape[1], members=list(members), prior=gaussian_prior_from_embeddings(E),
                                 tau=spec.tau, tau_units=spec.tau_units, init_centre=_sample_vocab_rows(E, spec.k, spec.seed))
-    cfg = replace(cfg, beta=spec.beta, sample=True)
+    cfg = replace(cfg, beta=spec.beta, sample=True,
+                  **({"select": "objective", "dev_sample": True} if spec.protocol == "corrected" else {}))
     res = train_hier(model, prefix, data_by_member, tok.pad_token_id, cfg)
     prefix.load_state_dict(res.best_state)
     ckpt = Path(ckpt_dir) / f"{spec.run_id()}.pt"
@@ -88,7 +90,7 @@ def run_hier(model, tok, spec: HierSpec, members: dict[str, Cell], data_by_membe
         run_id = f"{spec.run_id()}_{m}"
         row = {
             "cell": cell.key(), **base, "member": m, "run_id": run_id, **_common(model, data),
-            "steps": cfg.steps, "best_step": res.best_step,
+            "steps": cfg.steps, "lr": cfg.lr, "select": cfg.select, "dev_sample": cfg.dev_sample, "best_step": res.best_step,
             "dev_bits_per_token": dev.bits_per_token,
             **_test_fields(test, copy_split_bits(model, view, data["test"], pad, bs, cfg.pad_to)),
             "kl_centre_bits": kl_c, "kl_dev_bits": kl_d[m], "kl_bits": kl_c + kl_d[m],

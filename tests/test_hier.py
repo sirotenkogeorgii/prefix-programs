@@ -36,7 +36,8 @@ def test_run_hier_writes_one_row_per_member_with_both_kl_terms(tok, tiny_model, 
         assert r["test_bits_per_token"] > 0 and r["dev_bits_per_token"] > 0
         assert r["kl_bits"] == r["kl_centre_bits"] + r["kl_dev_bits"]
     assert by_cell["translation-ru"]["kl_centre_bits"] == by_cell["translation-de"]["kl_centre_bits"]
-    assert all(r["tau_units"] == "prior" and r["run_id"].startswith("hier_task-translation_none_k2_s0_b1_t0.5p_") for r in rows)
+    assert all(r["tau_units"] == "prior" and r["protocol"] == "prereg" and r["select"] == "dev" and not r["dev_sample"] for r in rows)
+    assert all(r["run_id"].startswith("hier_task-translation_none_k2_s0_b1_t0.5p_") for r in rows)
     hist = json.loads(Path(rows[0]["history"]).read_text())
     assert [h["step"] for h in hist] == [3, 6] and all("kl_centre_bits" in h and "kl_dev_bits" in h for h in hist)
     assert results.is_done(cell="translation-ru", design="hier", group="task:translation", k=2, seed=0, cond="none",
@@ -45,3 +46,21 @@ def test_run_hier_writes_one_row_per_member_with_both_kl_terms(tok, tiny_model, 
     assert not results.is_done(cell="translation-ru", design="hier", group="task:translation", k=2, seed=0, cond="none",
                                beta=1.0, tau=0.5, tau_units="abs")
     assert run_hier(tiny_model, tok, spec, members, data, cfg, results, tmp_path / "ckpt") == []
+
+
+def test_corrected_protocol_selects_by_dev_objective(tok, tiny_model, tmp_path):
+    results = ResultsTable(tmp_path / "hier.csv")
+    members = {"ru": Cell("translation", "ru"), "de": Cell("translation", "de")}
+    data = {"ru": _data(tok, RU), "de": _data(tok, DE)}
+    spec = HierSpec(group="task:translation", k=2, seed=0, cond="none", beta=3.0, tau=1.0, protocol="corrected")
+    cfg = TrainCfg(steps=6, batch_size=4, lr=0.01, warmup=1, eval_every=2, seed=0)
+    rows = run_hier(tiny_model, tok, spec, members, data, cfg, results, tmp_path / "ckpt")
+    assert len(rows) == 2 and all(r["protocol"] == "corrected" and r["select"] == "objective" and r["dev_sample"] for r in rows)
+    assert rows[0]["run_id"].startswith("hier_task-translation_none_k2_s0_b3_t1p_c_")
+    hist = json.loads(Path(rows[0]["history"]).read_text())
+    best = min(hist, key=lambda h: h["dev_objective"])
+    assert rows[0]["best_step"] == best["step"]
+    assert all(h["dev_objective"] >= h["dev_bits_per_token"] for h in hist)  # KL term is non-negative
+    # the preregistered run with the same (k, beta) is a different key
+    assert not results.is_done(cell="translation-ru", design="hier", group="task:translation", k=2, seed=0, cond="none",
+                               beta=3.0, tau=1.0, tau_units="prior", protocol="prereg")
