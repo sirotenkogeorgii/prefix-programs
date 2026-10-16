@@ -45,7 +45,7 @@ fontsize: 10pt
 - A translation program ≈ 500 bits; Russian recall 5×; English recall dearest, also on the 4,212 items shared by all three recall test sets.
 - Task ordering follows the learning gap (H1 yes); language ordering does **not** follow exposure (H1 no).
 
-## Result 3: task, not language, is the shared factor
+## Result 3: neither nesting is cheaper, and sharing does not compress
 
 ![](../figures/hier_bars.png){width=78%}
 
@@ -59,9 +59,10 @@ Centre paid once per group, each deviation once per member; cheapest run with ev
 | eight independent programs | prereg. | 37,600 |
 | centre per language + task deviations | prereg. selection | 53,500 |
 | centre per task + language deviations | corrected | 26,700 |
+| centre per language + task deviations | corrected | not reached (ru + de: 8,900) |
 | eight independent programs | corrected | 17,600 |
 
-- Task‑centred beats language‑centred by 37%; almost all of the difference is recall.
+- Prereg. rule: task‑centred beats language‑centred by 37%. Corrected protocol: the nestings cost the same within 25% at matched (k, β); the language‑centred code never gets recall‑en under 0.25.
 - A shared centre **saves no bits**: under the corrected protocol the hierarchy costs 1.5× the independent programs; parity on translation (1,029 vs 978), 1.9× on recall (24,972 vs 12,917).
 - At matched (k, β) the hierarchy costs 0.94–1.5× the sum of the flat2 runs; one β for all members then adds the rest.
 
@@ -69,8 +70,8 @@ Centre paid once per group, each deviation once per member; cheapest run with ev
 
 - Given the **translation** centre (604 bits): Russian 225, German 200 bits, 0.41–0.46 of a standalone program (corrected protocol; 485 / 662 under the preregistered rule).
 - Given the **recall** centre (14,600 bits): a language costs 3,200–3,900 bits, more than a standalone Russian or German program.
-- Given a **language** centre (prereg.): continuation 110–180 bits (ru, de) or 740 (en), translation 440–630, recall 5,300–26,200; corrected ru rerun: 153 / 465 / 6,860.
-- Recall is the program that cannot be shared; the language‑centred code pays for it three times.
+- Given a **language** centre (830–900 bits): translation 201 / 257, recall 3,200 / 3,400, continuation 60 (ru / de). Symmetric with the task‑centred costs; the prereg. asymmetry (recall 5,300–26,200 given a language) was the optimiser.
+- Recall is the program that cannot be shared: about 3,200 bits as a deviation from either kind of centre.
 - For translation alone the hierarchy is at best at parity: 1,029 vs 978 bits (corrected), 2,733 vs 1,893 (prereg.).
 
 ## Result 4: composition and distance
@@ -110,8 +111,8 @@ Same‑task warm start costs 0.85 of scratch, same‑language 0.95. Silhouettes 
 | | outcome |
 |---|---|
 | H1 cost orderings | task yes (recall far above translation); language no (English dearest) |
-| H2 cheap language | slots: equal; bits: task given language 1.3–7.8× language given task on recall |
-| H3 separability | partial on translation, not on recall; a shared centre saves no bits (1.5× independent) |
+| H2 cheap language | slots: equal; bits: equal under the corrected protocol (prereg. 1.3–7.8× asymmetry does not replicate) |
+| H3 separability | partial on translation, not on recall; a shared centre saves no bits (1.5× independent); nestings equal within 25% |
 | H4 task‑organised distance | direction yes, structure no, not significant (silhouette 0.004 vs −0.09) |
 | H5 depth split | language deviation read early and late, task centre early: opposite to H5 |
 | H6 input compressibility | one vector suffices with the task prefix (exploratory) |
@@ -119,6 +120,6 @@ Same‑task warm start costs 0.85 of scratch, same‑language 0.95. Silhouettes 
 ## Limitations and next steps
 
 - Two seeds; recall budget‑bound (3000 steps: $\hat D$ 0.043 to 0.032 and falling); continuation unmeasurable; distance matrix one seed.
-- Variational protocol corrected after preregistration; both reported. Hierarchy rerun under it (language‑centred: ru so far); every corrected rate still falling at 1500 steps.
+- Variational protocol corrected after preregistration; both reported. Both nestings rerun under it; every corrected rate still falling at 1500 steps.
 - Research version, same code: scale axis 0.5B–7B, 20+ languages by resource level, per‑column mixture prior, charge $\log_2|k\text{-grid}|$ bits for $k$, step size in prior‑σ units.
 - Repo: `sirotenkogeorgii/prefix-programs`, branch `prefixlab`; `01_figures.ipynb` regenerates everything in under a minute.
