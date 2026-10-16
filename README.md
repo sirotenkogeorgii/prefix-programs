@@ -26,6 +26,7 @@ separable? See `Prefix_Project_Proposal_v1.md` for the design and hypotheses.
 - `notebooks/01_figures.ipynb` — regenerates `figures/` and `tables/` from `results_sync/` and `prereg.json`, no GPU.
 - `notebooks/02_live_demo.ipynb` — trains one prefix live and places it on the stored curve (GPU).
 - `report/report.md` (+ PDF) and `slides/slides.md` (+ PDF, PPTX) — the seminar report and talk, built with pandoc.
+- `paper/paper.tex` (+ PDF, `refs.bib`, NeurIPS style file) — the paper-format write-up, built with `latexmk -pdf`.
 - `prereg.json` — operating points, grids and training settings fixed on dev before any test number.
 - `tests/` — pytest on a tiny random Qwen2 config (no model download).
 

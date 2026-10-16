@@ -1,43 +1,34 @@
-\documentclass[10pt,twocolumn]{article}
-\usepackage[a4paper,top=2.3cm,bottom=2.3cm,left=1.9cm,right=1.9cm,columnsep=0.7cm]{geometry}
-\usepackage[T1]{fontenc}
+\documentclass{article}
+% NeurIPS style (same family as Blier & Ollivier 2018, arXiv:1802.07044): single column, Times, numbered references.
+\PassOptionsToPackage{numbers,sort&compress}{natbib}
+\usepackage[preprint]{neurips_2024}
 \usepackage[utf8]{inputenc}
-\usepackage{newtxtext,newtxmath}
-\usepackage{microtype}
-\usepackage{amsmath}
+\usepackage[T1]{fontenc}
+\usepackage[hidelinks]{hyperref}
+\usepackage{url}
 \usepackage{booktabs}
+\usepackage{amsmath,amssymb}
 \usepackage{graphicx}
-\usepackage{caption}
 \usepackage{subcaption}
 \usepackage{xcolor}
-\usepackage[round,authoryear]{natbib}
-\usepackage[hidelinks]{hyperref}
-\usepackage{titlesec}
-\titlespacing*{\section}{0pt}{1.2ex plus .4ex}{0.6ex}
-\titlespacing*{\subsection}{0pt}{0.9ex plus .3ex}{0.4ex}
-\titleformat{\section}{\normalfont\large\bfseries}{\thesection}{0.6em}{}
-\titleformat{\subsection}{\normalfont\normalsize\bfseries}{\thesubsection}{0.6em}{}
-\titleformat{\paragraph}[runin]{\normalfont\bfseries}{}{0pt}{}[.]
-\setlength{\abovecaptionskip}{4pt}
-\setlength{\belowcaptionskip}{0pt}
-\captionsetup{font=small}
+\usepackage{microtype}
 \newcommand{\Dh}{\hat D}
 \newcommand{\cell}[1]{\texttt{#1}}
 \graphicspath{{../figures/}}
 
-\title{\LARGE Programs for a Frozen Machine:\\ \Large The Description Length of Language and Task in Optimized Prefixes}
-\author{Georgii Sirotenko\\ Heidelberg University\\ \texttt{georgii.sirotenko@stud.uni-heidelberg.de}}
-\date{}
+\title{Programs for a Frozen Machine:\\ The Description Length of Language and Task in Optimized Prefixes}
+\author{%
+  Georgii Sirotenko\\
+  Heidelberg University\\
+  \texttt{georgii.sirotenko@stud.uni-heidelberg.de}
+}
 
 \begin{document}
-\twocolumn[
 \maketitle
-\vspace{-1.2em}
+
 \begin{abstract}
-\noindent A frozen language model is a fixed machine; a soft prefix that makes it perform a task is a program for that machine, and the shortest such program is a model-relative description length of the task. We measure that length for a frozen Qwen2.5-1.5B base model over a grid of three tasks (translation from English, factual recall, sentence continuation) and three output languages (Russian, German, English), in two units: prefix slots and variational bits under a bits-back code. Four findings. (i)~Slots are not a description length: translation saturates at one slot, one trained slot beats the natural-language prompt everywhere, and a conditioning string is worth less than a slot. (ii)~In bits, a translation program costs about 500~bits at 10\% excess loss, a Russian recall program five times that, and English recall most of all; continuation has nothing to compress. (iii)~Task, not language, is the shared factor: one centre per task with language deviations codes all eight cells for 37\% fewer bits than one centre per language with task deviations, recall programs are language-specific, do not compose zero-shot and are read deep in the network, whereas translation programs are read almost entirely in the first block; inside a hierarchical prefix the language deviation is read again at blocks 16--17, which the task centre is not. (iv)~The variational objective selects compact programs but the standard optimiser does not find them: a conservative step size and checkpoint selection on the full objective lower the measured frontier by 20--71\% with fewer runs, which turns the open problem of \citet{shaw2026bridging} into a recipe at this scale. All numbers regenerate from the released tables.
+A frozen language model is a fixed machine; a soft prefix that makes it perform a task is a program for that machine, and the shortest such program is a model-relative description length of the task. We measure that length for a frozen Qwen2.5-1.5B base model over a grid of three tasks (translation from English, factual recall, sentence continuation) and three output languages (Russian, German, English), in two units: prefix slots and variational bits under a bits-back code. Four findings. (i)~Slots are not a description length: translation saturates at one slot, one trained slot beats the natural-language prompt everywhere, and a conditioning string is worth less than a slot. (ii)~In bits, a translation program costs about 500~bits at 10\% excess loss, a Russian recall program five times that, and English recall most of all; continuation has nothing to compress. (iii)~Task, not language, is the shared factor: one centre per task with language deviations codes all eight cells for 37\% fewer bits than one centre per language with task deviations, recall programs are language-specific, do not compose zero-shot and are read deep in the network, whereas translation programs are read almost entirely in the first block; inside a hierarchical prefix the language deviation is read again at blocks 16--17, which the task centre is not. (iv)~The variational objective selects compact programs but the standard optimiser does not find them: a conservative step size and checkpoint selection on the full objective lower the measured frontier by 20--71\% with fewer runs, which turns the open problem of \citet{shaw2026bridging} into a recipe at this scale. All numbers regenerate from the released tables.
 \end{abstract}
-\vspace{1.0em}
-]
 
 \section{Introduction}
 Prompt tuning \citep{lester2021power} and prefix tuning \citep{li2021prefix} adapt a frozen language model by optimising a few continuous vectors prepended to the input. Read as engineering, these vectors are parameters. Read through the lens of algorithmic information theory they are programs: the frozen model is the interpreter, the prefix is the program, the input is the data and the target is the result. \citet{shaw2026bridging} make this reading precise, showing that prompt tokens form a program tape for a Transformer interpreter and that the variational code length of a prompt is an asymptotically optimal description-length objective. \citet{cosma2026prompting} define prompting complexity as a model-relative, resource-bounded Kolmogorov complexity. Both papers measure programs; neither asks how the program for a multilingual task is organised.
@@ -86,11 +77,11 @@ The preregistered protocol (\emph{flat}) used learning rate 0.05, the checkpoint
 \section{Results}\label{sec:results}
 
 \subsection{Slots are not a description length}\label{sec:slots}
-\begin{figure*}[t]
+\begin{figure}[t]
 \centering\includegraphics[width=\textwidth]{curves.png}
 \caption{Normalised distortion against the number of slots, Design~A, seed means with the seed range shaded. Dashed lines mark the operating points; line style is the conditioning format. Continuation (right) is noise: its floor lies within 0.10--0.16 bits per token of the no-prefix loss.}
 \label{fig:curves}
-\end{figure*}
+\end{figure}
 
 Figure~\ref{fig:curves} shows $\Dh$ against $k$. Translation reaches $\Dh\le0.10$ with one slot in every language and conditioning and is flat from there. Recall keeps improving to $k=32$ on Russian and German with the budget binding: a 3000-step run on \cell{recall-ru} at $k=8$ moves $\Dh$ from 0.043 to 0.032 and is still falling. Continuation is excluded from every headline claim because its floor lies within 0.10--0.16 bits per token of the no-prefix loss, below the seed variation. Seed gaps are below 0.011 on translation, 0.042 on \cell{recall-ru} and \cell{recall-de}, and 0.20 on \cell{recall-en}. Table~\ref{tab:kstar} gives $k^\ast$.
 
@@ -114,11 +105,11 @@ recall-en & 2 & 16 & not reached \\
 Two observations make the slot count unusable as a description length. First, the natural-language prompt, scored as a context with no prefix, is far worse than one trained slot: on recall it leaves $\Dh$ at 0.91--0.96 where one slot leaves 0.13--0.41; on translation 0.12--0.20 against 0.05. One vector of 1,536 numbers carries more than an instruction, so a token is not a unit of information. Second, conditioning saves little on the slot axis: giving the language or the task changes $k^\ast(0.10)$ in none of the translation cells and in two recall cells (\cell{recall-ru} 2 to 1, \cell{recall-en} 16 to 8, for either conditioning). The savings $\Delta k_{\text{lang}}$ and $\Delta k_{\text{task}}$ average 1.8 slots each over the measurable cells, with 8 of those 9 slots from \cell{recall-en}. The slot axis cannot distinguish telling the model the language from telling it the task; the bit axis can.
 
 \subsection{Description length in bits}\label{sec:bits}
-\begin{figure*}[t]
+\begin{figure}[t]
 \centering\includegraphics[width=\textwidth]{frontier.png}
 \caption{Rate against distortion for every variational run, per cell. Circles: preregistered protocol; squares: corrected protocol. Distortion is scored on posterior samples.}
 \label{fig:frontier}
-\end{figure*}
+\end{figure}
 
 \begin{table}[t]
 \centering\small
@@ -145,7 +136,7 @@ The ordering across tasks within a language follows the learning gap $L_{\text{n
 
 \subsection{Task is the shared factor}\label{sec:hier}
 \begin{figure}[t]
-\centering\includegraphics[width=\columnwidth]{hier_bars.png}
+\centering\includegraphics[width=0.85\textwidth]{hier_bars.png}
 \caption{Code length at $\Dh\le0.25$ under the two nestings: the centre is paid once per group, each deviation once per member; the cheapest run whose members all reach the level.}
 \label{fig:hier}
 \end{figure}
@@ -172,26 +163,26 @@ The per-member costs explain that ordering. Given the translation centre, a targ
 
 \subsection{Composition}\label{sec:compose}
 \begin{figure}[t]
-\centering\includegraphics[width=\columnwidth]{compose.png}
+\centering\includegraphics[width=0.8\textwidth]{compose.png}
 \caption{Assembled (held-out) against trained-on $\Dh$ of tied task and language parts, per hold-out.}
 \label{fig:compose}
 \end{figure}
 Six tied parts trained on every cell match Design~A at the same total slots on translation ($\Dh$ 0.017--0.027 against 0.005--0.007 at $2{+}2$) and cost about twice its distortion on recall (0.08--0.25 against 0.05--0.12). Assembled zero-shot for a held-out cell (Figure~\ref{fig:compose}), the parts close 60--73\% of the gap between no prefix and the floor on translation (three hold-outs over two cells, $\Dh$ 0.27--0.40) and 14--32\% on recall (six hold-outs over three cells, $\Dh$ 0.68--0.86). Task and language parts compose partially for translation and barely for recall.
 
 \subsection{Distance between programs}\label{sec:distance}
-\begin{figure*}[t]
-\centering\includegraphics[width=0.9\textwidth]{distance.png}
+\begin{figure}[t]
+\centering\includegraphics[width=0.95\textwidth]{distance.png}
 \caption{Left: symmetrised warm-start learning cost divided by the from-scratch cost. Right: $\Dh$ of a trained prefix applied unchanged to another cell, clipped at 2.}
 \label{fig:distance}
-\end{figure*}
+\end{figure}
 Warm-starting from a prefix of the same task costs 0.85 of training from scratch; from the same language or an unrelated cell, 0.95 (Figure~\ref{fig:distance}, left). The silhouette of the task partition on the symmetrised distance is 0.004 and that of the language partition $-0.09$: the direction is the hypothesised one, the structure is absent, and with seven pairs per group at one seed the difference is not significant. The zero-shot block (right) is the strong signal: a prefix applied to any other cell is roughly as bad as, or worse than, no prefix ($\Dh$ 0.7--1.4, median 0.97, up to 2.5), and a recall prefix applied to continuation is catastrophic ($\Dh$ 5--25). The recall program overrides the model's default behaviour rather than adding to it.
 
 \subsection{Where the program is read}\label{sec:mech}
-\begin{figure*}[t]
+\begin{figure}[t]
 \centering\includegraphics[width=\textwidth]{mechanism.png}
 \caption{Fraction of a prefix's effect recovered by patching its positions into one block's attention input, mean over cells per task. Probes: \texttt{A} (Design~A, $k=4$); \texttt{hier\_task\_centre} and \texttt{hier\_task\_dev} (task centre; language deviation on top of it); \texttt{hier\_lang\_centre} and \texttt{hier\_lang\_dev} (language centre; task deviation on top of it). Fractions are undefined where the donor is not at least 0.1 bits per token better than the recipient.}
 \label{fig:mech}
-\end{figure*}
+\end{figure}
 Patching all blocks reproduces the donor exactly. Patching block~0 alone recovers 70--87\% of the effect for translation and 74--94\% for continuation, but only 36--58\% for recall, which has a secondary peak at block~17 and a smaller one at blocks 10--11 (Figure~\ref{fig:mech}, left). Single-block fractions summed over blocks come to 2.6 for translation and 3.0 for continuation, so their reading is redundant, but 1.3 for recall, which is close to additive. A translation program is copied into the token stream in the first block and not needed afterwards; a recall program is read in several places, deep in the network.
 
 The block of maximal recovery is block~0 for every probe on every cell, so the peak does not separate the parts of a hierarchical prefix. The profiles do. The task centre is read early: on recall its mass over blocks 0--3 is 1.0 and over blocks 14--27 it is 0.5. The language deviation on top of it is read early and again deep: on recall 1.6 early and 1.9 late, with block~17 alone recovering 0.94 of the deviation's effect; on \cell{translation-de} 1.2 and 2.1, with blocks 16 and 22 recovering 0.99 and 0.85. The task deviation under a language centre behaves like the task centre (1.0 and 0.5). There is a depth split by prefix part, in the opposite direction to the language-early, task-middle expectation drawn from \citet{dumas2025separating}: the task part is read early, the language part early and late. One detail: the recall centre without its English deviation is worse than a random prefix on English, so the recall centre is a non-English program.
@@ -201,7 +192,7 @@ With the $k=4$ task prefix, one per-example vector replaces the input to within 
 
 \section{The objective is right, the search is hard}\label{sec:opt}
 \begin{figure}[t]
-\centering\includegraphics[width=\columnwidth]{trajectories.png}
+\centering\includegraphics[width=0.85\textwidth]{trajectories.png}
 \caption{Centre KL (hierarchical runs) or total KL (flat2) and development loss against step for two preregistered-protocol runs and one corrected-protocol run.}
 \label{fig:traj}
 \end{figure}
@@ -221,12 +212,11 @@ Code, result tables, per-example bits, training histories and prefix checkpoints
 \bibliographystyle{plainnat}
 \bibliography{refs}
 
-\clearpage
 \appendix
 \section{Preregistered comparisons}
-\begin{center}\small
-\captionof{table}{Outcome of each preregistered comparison.}
-\begin{tabular}{p{0.12\columnwidth}p{0.80\columnwidth}}
+\begin{table}[h]
+\centering\small
+\begin{tabular}{p{0.06\textwidth}p{0.86\textwidth}}
 \toprule
 H1 & task ordering supported (recall far above translation); language ordering reversed on recall (English dearest), robust to common items; exposure proxy unavailable \\
 H2 & equal on the slot axis (1.8 slots each, 8 of 9 from one cell); in bits, task given language costs 1.3--7.8$\times$ language given task on recall, equal on translation \\
@@ -236,7 +226,8 @@ H5 & block 0 for both; the language deviation is read again at blocks 16--17 and
 H6 & one vector suffices with the task prefix; per-token variant not computed; no rate term \\
 \bottomrule
 \end{tabular}
-\end{center}
+\caption{Outcome of each preregistered comparison.}
+\end{table}
 
 \section{Run inventory}
 273 Design~A, baseline and floor rows (6 values of $k$, 2 seeds, 3 conditionings, 8 cells); 72 flat and 20 flat2 rows; 144 hierarchical rows from 54 joint runs; 72 composition rows from 10 joint runs; 72 distance rows; 32 regime~2 rows; 1,120 mechanism rows; one 3000-step recall run. Training: 1500 steps, batch 16, AdamW, learning rate 0.05 (0.01 for flat2), 50 warm-up steps, cosine decay, gradient clip 1.0, development evaluation every 100 steps. LoRA floors: rank 16 on the attention projections, learning rate $2\times10^{-4}$, 1500 steps.
