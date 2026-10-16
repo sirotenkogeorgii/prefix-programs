@@ -54,17 +54,17 @@ Centre paid once per group, each deviation once per member; cheapest run with ev
 ## Three codes for the same eight cells
 
 | code (all 8 cells, $\hat D \le 0.25$) | protocol | bits |
-|---|---|---|
-| centre per task + language deviations | prereg. selection | 33,500 |
+|----------------------------------|---------------|----------------------------|
+| task centres + language deviations | prereg. selection | 33,500 |
 | eight independent programs | prereg. | 37,600 |
-| centre per language + task deviations | prereg. selection | 53,500 |
-| centre per task + language deviations | corrected | 26,700 |
-| centre per language + task deviations | corrected | not reached (ru + de: 8,900) |
+| language centres + task deviations | prereg. selection | 53,500 |
+| task centres + language deviations | corrected | 26,700 |
+| language centres + task deviations | corrected | not reached (ru+de 8,900) |
 | eight independent programs | corrected | 17,600 |
 
-- Prereg. rule: task‑centred beats language‑centred by 37%. Corrected protocol: the nestings cost the same within 25% at matched (k, β); the language‑centred code never gets recall‑en under 0.25.
-- A shared centre **saves no bits**: under the corrected protocol the hierarchy costs 1.5× the independent programs; parity on translation (1,029 vs 978), 1.9× on recall (24,972 vs 12,917).
-- At matched (k, β) the hierarchy costs 0.94–1.5× the sum of the flat2 runs; one β for all members then adds the rest.
+- Prereg. rule: task‑centred wins by 37%. Corrected: the nestings tie within 25% at matched (k, β); language‑centred never gets recall‑en under 0.25.
+- A shared centre **saves no bits**: 1.5× the independent programs; parity on translation (1,029 vs 978), 1.9× on recall (24,972 vs 12,917).
+- At matched (k, β) a hierarchy costs 0.94–1.5× the flat2 sum.
 
 ## What a language costs, what a task costs
 
@@ -109,7 +109,7 @@ Same‑task warm start costs 0.85 of scratch, same‑language 0.95. Silhouettes 
 ## Preregistered comparisons
 
 | | outcome |
-|---|---|
+|----------------|------------------------------------------------------|
 | H1 cost orderings | task yes (recall far above translation); language no (English dearest) |
 | H2 cheap language | slots: equal; bits: equal under the corrected protocol (prereg. 1.3–7.8× asymmetry does not replicate) |
 | H3 separability | partial on translation, not on recall; a shared centre saves no bits (1.5× independent); nestings equal within 25% |
