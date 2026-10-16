@@ -15,6 +15,3 @@ recall-en,language centre,0.6886171662647518,0.17638818221639188,prereg
 continuation-ru,language centre,-0.009249669162789083,0.15582063260283074,prereg
 continuation-de,language centre,-0.14967984675595844,-0.2487338102865193,prereg
 continuation-en,language centre,0.595841636644856,0.980049174594124,prereg
-translation-ru,task centre,0.7042951018803282,0.21807212372971402,corrected
-translation-de,task centre,0.23239993764650546,0.5224164758480272,corrected
-translation-ru,language centre,0.08849221591039615,0.0924470255000418,corrected
