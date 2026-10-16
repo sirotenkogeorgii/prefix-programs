@@ -17,4 +17,9 @@ regime2,continuation-ru,4,0,none,0,regime2_continuation-ru_none_k0_m4_s0,100,200
 regime2,continuation-ru,8,0,none,0,regime2_continuation-ru_none_k0_m8_s0,100,200,0.1,0.0013144508850295,3.7074343551635742,2.911487982940674,2500,results/per_example/regime2_continuation-ru_none_k0_m8_s0.json
 regime2,translation-ru,1,4,none,0,regime2_translation-ru_none_k4_m1_s0,100,200,0.1,0.2372083120274928,3.251597178584102,1.3926127531424686,4893,results/per_example/regime2_translation-ru_none_k4_m1_s0.json
 regime2,translation-ru,2,4,none,0,regime2_translation-ru_none_k4_m2_s0,100,200,0.1,0.0213178392745601,3.251597178584102,1.3926127531424686,4893,results/per_example/regime2_translation-ru_none_k4_m2_s0.json
-regime2,translation-ru,4,4,none,0,regime2_translation-ru_none_k4_m4_s0,100,200,0.1,0.005288753922341208,3.251597178584102,1.3926127531424686,4893,results/per_example/regime2_translation-ru_none_k4_m4_s0.json
+regime2,translation-ru,4,4,none,0,regime2_translation-ru_none_k4_m4_s0,100,200,0.1,0.0052887539223412,3.251597178584102,1.3926127531424686,4893,results/per_example/regime2_translation-ru_none_k4_m4_s0.json
+regime2,translation-ru,8,4,none,0,regime2_translation-ru_none_k4_m8_s0,100,200,0.1,0.001926930236451,3.251597178584102,1.3926127531424686,4893,results/per_example/regime2_translation-ru_none_k4_m8_s0.json
+regime2,translation-de,1,4,none,0,regime2_translation-de_none_k4_m1_s0,100,200,0.1,0.0868510168174217,3.92112819567305,1.6462413910311269,4205,results/per_example/regime2_translation-de_none_k4_m1_s0.json
+regime2,translation-de,2,4,none,0,regime2_translation-de_none_k4_m2_s0,100,200,0.1,0.009720217129581,3.92112819567305,1.6462413910311269,4205,results/per_example/regime2_translation-de_none_k4_m2_s0.json
+regime2,translation-de,4,4,none,0,regime2_translation-de_none_k4_m4_s0,100,200,0.1,0.0043496809248656,3.92112819567305,1.6462413910311269,4205,results/per_example/regime2_translation-de_none_k4_m4_s0.json
+regime2,translation-de,8,4,none,0,regime2_translation-de_none_k4_m8_s0,100,200,0.1,0.0018994467250457948,3.92112819567305,1.6462413910311269,4205,results/per_example/regime2_translation-de_none_k4_m8_s0.json
