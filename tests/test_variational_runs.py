@@ -1,5 +1,7 @@
 """Design flat (variational, global prior) through run_one, and the hierarchical prefix."""
+import json
 import math
+from pathlib import Path
 
 import pytest
 import torch
@@ -35,6 +37,22 @@ def test_flat_variational_run_records_kl_and_sampled_bits(tok, tiny_model, tmp_p
     assert results.is_done(cell="translation-ru", k=2, seed=0, cond="none", design="flat", beta=1.0)
     # a different beta is a different run
     assert not results.is_done(cell="translation-ru", k=2, seed=0, cond="none", design="flat", beta=0.1)
+
+
+def test_flat2_selects_by_dev_objective_with_sampled_dev(tok, tiny_model, tmp_path):
+    results = ResultsTable(tmp_path / "flat2.csv")
+    spec = RunSpec(Cell("translation", "ru"), k=2, seed=0, cond="none", design="flat2", beta=3.0)
+    cfg = TrainCfg(steps=6, batch_size=4, lr=0.01, warmup=1, eval_every=2, seed=0)
+    row = run_one(tiny_model, tok, spec, _data(tok), cfg, results, tmp_path / "ckpt")
+    assert row["design"] == "flat2" and row["select"] == "objective" and row["dev_sample"] and row["lr"] == 0.01
+    assert row["run_id"] == "flat2_translation-ru_none_k2_s0_b3"
+    assert "test_bits_per_token_sampled" in row and math.isfinite(row["kl_bits"])
+    hist = json.loads(Path(row["history"]).read_text())
+    assert [h["step"] for h in hist] == [2, 4, 6] and all("dev_objective" in h for h in hist)
+    best = min(hist, key=lambda h: h["dev_objective"])
+    assert row["best_step"] == best["step"] and row["dev_bits_per_token"] == pytest.approx(best["dev_bits_per_token"])
+    assert results.is_done(cell="translation-ru", k=2, seed=0, cond="none", design="flat2", beta=3.0)
+    assert not results.is_done(cell="translation-ru", k=2, seed=0, cond="none", design="flat", beta=3.0)
 
 
 def test_hierarchical_prefix_shapes_and_kl_decomposition():

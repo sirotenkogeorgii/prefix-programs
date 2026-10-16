@@ -26,6 +26,8 @@ class TrainCfg:
     seed: int = 0
     beta: float = 0.0  # weight on the prefix KL (variational prefixes)
     sample: bool = True  # variational: inject posterior noise during training
+    select: str = "dev"  # checkpoint rule: "dev" = lowest dev bits/token; "objective" = lowest dev bits + beta*KL/n_train_tokens
+    dev_sample: bool = False  # score dev with posterior samples (the coded object) instead of the posterior mean
     eval_batch_size: int = 32
     pad_to: int | None = None  # bucket padded length to a multiple (fixed shapes for MPS)
 
@@ -125,7 +127,7 @@ def train_prefix(model, prefix, train_examples, dev_examples, pad_id: int, cfg: 
         return collate([train_examples[i] for i in idx], pad_id, cfg.pad_to)
 
     history: list[dict] = []
-    best_bits, best_state, best_step = math.inf, None, -1
+    best_score, best_bits, best_state, best_step = math.inf, math.inf, None, -1
     running, n_running = 0.0, 0
     for step in range(1, cfg.steps + 1):
         batch = next_batch()
@@ -139,17 +141,21 @@ def train_prefix(model, prefix, train_examples, dev_examples, pad_id: int, cfg: 
         sched.step()
         running += loss.item(); n_running += 1
         if step % cfg.eval_every == 0 or step == cfg.steps:
-            ev = evaluate(model, prefix, dev_examples, pad_id, cfg.eval_batch_size, sample=False, pad_to=cfg.pad_to)
+            ev = evaluate(model, prefix, dev_examples, pad_id, cfg.eval_batch_size, sample=cfg.dev_sample, pad_to=cfg.pad_to)
+            kl_bits = prefix.kl_bits().item()
+            objective = ev.bits_per_token + cfg.beta * kl_bits / n_train_tokens
             entry = {
                 "step": step,
                 "train_nats_per_token": running / max(n_running, 1),
                 "dev_bits_per_token": ev.bits_per_token,
-                "kl_bits": prefix.kl_bits().item(),
+                "kl_bits": kl_bits,
+                "dev_objective": objective,
             }
             history.append(entry)
             running, n_running = 0.0, 0
-            if ev.bits_per_token < best_bits:
-                best_bits, best_step = ev.bits_per_token, step
+            score = objective if cfg.select == "objective" else ev.bits_per_token
+            if score < best_score:
+                best_score, best_bits, best_step = score, ev.bits_per_token, step
                 best_state = {k: v.detach().cpu().clone() for k, v in prefix.state_dict().items()}
     return TrainResult(best_state, best_bits, best_step, history, cfg.steps)
 

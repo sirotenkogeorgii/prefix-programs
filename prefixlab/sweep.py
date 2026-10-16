@@ -22,18 +22,20 @@ class RunSpec:
     k: int
     seed: int
     cond: str = "none"  # which information the context already supplies: none | lang | task | both
-    design: str = "A"  # A = plain sweep; flat = variational with global prior; none = no-prefix; floor = LoRA
+    design: str = "A"  # A = plain sweep; flat = variational with global prior; flat2 = flat with the corrected
+    # protocol (checkpoint by dev objective, dev scored with samples; run with --lr 0.01); none = no-prefix; floor = LoRA
     beta: float = 0.0  # KL weight (flat only)
 
     def key(self) -> dict:
         return dict(cell=self.cell.key(), k=self.k, seed=self.seed, cond=self.cond, design=self.design, beta=self.beta)
 
     def run_id(self) -> str:
-        tag = f"_b{self.beta:g}" if self.design == "flat" else ""
+        tag = f"_b{self.beta:g}" if self.design in VARIATIONAL else ""
         return f"{self.design}_{self.cell.key()}_{self.cond}_k{self.k}_s{self.seed}{tag}"
 
 
 N_EVAL_SAMPLES = 8
+VARIATIONAL = ("flat", "flat2")
 
 
 def _common(model, data) -> dict:
@@ -83,8 +85,11 @@ def run_one(model, tok, spec: RunSpec, data: dict, cfg: TrainCfg, results: Resul
     elif spec.design == "flat":
         prefix = VariationalPrefix.from_vocab(E, spec.k, spec.seed, prior=gaussian_prior_from_embeddings(E))
         cfg = replace(cfg, beta=spec.beta, sample=True)
+    elif spec.design == "flat2":
+        prefix = VariationalPrefix.from_vocab(E, spec.k, spec.seed, prior=gaussian_prior_from_embeddings(E))
+        cfg = replace(cfg, beta=spec.beta, sample=True, select="objective", dev_sample=True)
     else:
-        raise ValueError(f"run_one handles designs A and flat, not {spec.design}")
+        raise ValueError(f"run_one handles designs A, flat and flat2, not {spec.design}")
     res = train_prefix(model, prefix, data["train"], data["dev"], tok.pad_token_id, cfg)
     prefix.load_state_dict(res.best_state)
     test = evaluate(model, prefix, data["test"], tok.pad_token_id, cfg.eval_batch_size, pad_to=cfg.pad_to)
@@ -95,6 +100,9 @@ def run_one(model, tok, spec: RunSpec, data: dict, cfg: TrainCfg, results: Resul
         "run_id": spec.run_id(),
         **_common(model, data),
         "steps": cfg.steps,
+        "lr": cfg.lr,
+        "select": cfg.select,
+        "dev_sample": cfg.dev_sample,
         "best_step": res.best_step,
         "dev_bits_per_token": res.best_dev_bits_per_token,
         **_test_fields(test, copy_split_bits(model, prefix, data["test"], tok.pad_token_id, cfg.eval_batch_size, cfg.pad_to)),
@@ -103,7 +111,7 @@ def run_one(model, tok, spec: RunSpec, data: dict, cfg: TrainCfg, results: Resul
         "per_example": _save_per_example(results, spec.run_id(), test.per_example_bits, test.per_example_tokens),
         "history": _save_history(results, spec.run_id(), res.history),
     }
-    if spec.design == "flat":
+    if spec.design in VARIATIONAL:
         sampled = [evaluate(model, prefix, data["test"], tok.pad_token_id, cfg.eval_batch_size, sample=True,
                             pad_to=cfg.pad_to).bits_per_token for _ in range(N_EVAL_SAMPLES)]
         row["test_bits_per_token_sampled"] = sum(sampled) / len(sampled)
