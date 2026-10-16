@@ -22,7 +22,7 @@ fontsize: 10pt
 - Distortion: teacher‑forced bits per target token, normalised per cell
   $$\hat D = \frac{L - L_{\text{floor}}}{L_{\text{none}} - L_{\text{floor}}},\qquad L_{\text{floor}} = \min(\text{LoRA}, \text{best prefix})$$
 - Preregistered operating points $\hat D \le 0.25$ and $\le 0.10$.
-- 8 cells; ~34 A100 hours; every figure regenerated from CSVs.
+- 8 cells; ~36 A100 hours; every figure regenerated from CSVs.
 
 ## Result 1: slots are not a description length
 
@@ -70,7 +70,7 @@ Centre paid once per group, each deviation once per member; cheapest run with ev
 ## What a language costs, what a task costs
 
 - Given the **translation** centre (604 bits): Russian 225, German 200 bits, 0.41–0.46 of a standalone program (corrected protocol; 485 / 662 under the preregistered rule).
-- Given the **recall** centre (14,600 bits): a language costs 3,200–3,900 bits, more than a standalone Russian or German program.
+- Given the **recall** centre (14,600 bits): a language costs 3,200–3,950 bits, more than a standalone Russian or German program.
 - Given a **language** centre (830–900 bits): translation 201 / 257, recall 3,200 / 3,400, continuation 60 (ru / de). Symmetric with the task‑centred costs; the prereg. asymmetry (recall 5,300–26,200 given a language) was the optimiser.
 - Recall is the program that cannot be shared: about 3,200 bits as a deviation from either kind of centre.
 - For translation alone the hierarchy is at best at parity: 1,029 vs 978 bits (corrected), 2,733 vs 1,893 (prereg.).
