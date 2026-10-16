@@ -28,7 +28,9 @@ def build_parser() -> argparse.ArgumentParser:
     p.add_argument("--hier-protocol", default="prereg", choices=["prereg", "corrected"])
     p.add_argument("--max-examples", type=int, default=256, help="seeded subsample of the test split per cell")
     p.add_argument("--hier-sample", action="store_true",
-                   help="probe one posterior sample per hierarchical part (seeded) instead of the posterior means")
+                   help="probe one posterior sample per hierarchical part (seeded) instead of the posterior means; "
+                        "this is the default for --hier-protocol corrected, whose posteriors are as wide as the prior")
+    p.add_argument("--hier-mean", action="store_true", help="force posterior means even for the corrected protocol")
     p.add_argument("--eval-batch-size", type=int, default=32)
     p.add_argument("--pad-to", type=int, default=None)
     p.add_argument("--results", default="results/mechanism.csv")
@@ -39,6 +41,9 @@ def main(argv=None, model=None, tok=None) -> str:
     args = build_parser().parse_args(argv)
     model, tok = resolve_model(args, model, tok)
     cells = parse_cells(args.cells) if args.cells else all_cells(csv_list(args.tasks), csv_list(args.langs))
+    if args.hier_protocol == "corrected" and not args.hier_sample and not args.hier_mean:
+        print("[mechanism] corrected protocol: probing posterior samples (pass --hier-mean to override)", flush=True)
+        args.hier_sample = True
     tasks, langs = sorted({c.task for c in cells}), sorted({c.lang for c in cells})
     results = ResultsTable(args.results)
     dev_rows, devtest_rows = load_flores_for(args, tasks, langs)

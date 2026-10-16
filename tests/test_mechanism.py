@@ -63,3 +63,15 @@ def test_hier_parts_mean_and_sample(tmp_path):
     assert torch.equal(c1, c2) and torch.equal(m1, m2) and not torch.equal(c1, c3)
     assert not torch.equal(c1, centre) and (c1.abs() < 2.0).all()   # sigma = e^-1, so draws stay within a few sigma
     assert torch.allclose(m1 - c1 - 1.0, (m1 - c1 - 1.0)) and not torch.equal(m1 - c1, torch.ones(2, 3))
+
+
+def test_corrected_protocol_defaults_to_samples(monkeypatch):
+    """The corrected protocol's posterior mean is not the coded program, so the CLI must default to sampling."""
+    import argparse
+    from prefixlab import cli_mechanism
+    captured = {}
+    def fake_hier_parts(ckpt, member, sample=False, seed=0):
+        captured["sample"] = sample; raise RuntimeError("stop")
+    monkeypatch.setattr(cli_mechanism, "hier_parts", fake_hier_parts)
+    src = open(cli_mechanism.__file__).read()
+    assert 'args.hier_protocol == "corrected" and not args.hier_sample and not args.hier_mean' in src
