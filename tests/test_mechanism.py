@@ -65,13 +65,13 @@ def test_hier_parts_mean_and_sample(tmp_path):
     assert torch.allclose(m1 - c1 - 1.0, (m1 - c1 - 1.0)) and not torch.equal(m1 - c1, torch.ones(2, 3))
 
 
-def test_corrected_protocol_defaults_to_samples(monkeypatch):
-    """The corrected protocol's posterior mean is not the coded program, so the CLI must default to sampling."""
-    import argparse
-    from prefixlab import cli_mechanism
-    captured = {}
-    def fake_hier_parts(ckpt, member, sample=False, seed=0):
-        captured["sample"] = sample; raise RuntimeError("stop")
-    monkeypatch.setattr(cli_mechanism, "hier_parts", fake_hier_parts)
-    src = open(cli_mechanism.__file__).read()
+def test_mechanism_parser_has_sample_and_mean_flags():
+    """The corrected protocol's posterior mean is not the coded program, so the CLI defaults to sampling for it
+    (applied in main) and exposes --hier-mean as the explicit override."""
+    from prefixlab.cli_mechanism import build_parser
+    a = build_parser().parse_args(["--hier-protocol", "corrected", "--results", "x.csv"])
+    assert a.hier_sample is False and a.hier_mean is False and a.hier_protocol == "corrected"
+    b = build_parser().parse_args(["--hier-sample", "--results", "x.csv"])
+    assert b.hier_sample is True
+    src = open(__import__("prefixlab.cli_mechanism", fromlist=["x"]).__file__).read()
     assert 'args.hier_protocol == "corrected" and not args.hier_sample and not args.hier_mean' in src
