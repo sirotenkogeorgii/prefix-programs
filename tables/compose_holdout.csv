@@ -1,4 +1,4 @@
-cell,k_task,k_lang,holdout,D_assembled,D_trained,D_designA,gap_closed
+cell,k_task,k_lang,holdout,D_assembled,D_trained,D_designA_k4,gap_closed
 recall-de,1,1,continuation-ru+recall-de,0.7411416482029324,0.17211223431378264,0.0842718403428066,0.2588583517970676
 continuation-ru,1,1,continuation-ru+recall-de,0.8344408111078705,0.13498042041632233,0.043137700019681445,0.1655591888921295
 recall-de,2,2,continuation-ru+recall-de,0.6752690255325764,0.15736812410505624,0.0842718403428066,0.3247309744674236

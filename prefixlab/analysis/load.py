@@ -1,7 +1,7 @@
 """Load result tables, floors and normalized distortion for the analysis notebook.
 
-Floors follow the ledger ruling: L_floor(cell, cond) = min(LoRA floor, best Design A prefix) for that cond,
-falling back to the cell's cond="none" rows. D̂ = (L - L_floor) / (L_none - L_floor).
+Floors follow the ledger ruling: one scale per cell from its cond="none" rows, L_floor = min(LoRA floor, best
+Design A prefix); every conditioning is measured on that scale. D̂ = (L - L_floor) / (L_none - L_floor).
 """
 from __future__ import annotations
 
@@ -59,8 +59,10 @@ def attach_D(df: pd.DataFrame, fl: pd.DataFrame, col: str = "test_bits_per_token
     """Add column `out` = D̂ of `col` on the cell's scale; NaN where the cell has no floor or no no-prefix row."""
     df = df.copy()
     df[out] = np.nan
-    if df.empty or col not in df.columns:
+    if df.empty:
         return df
+    if col not in df.columns:
+        raise KeyError(f"attach_D: column {col!r} not in table (columns: {list(df.columns)[:8]}...)")
     key = fl.set_index("cell")
     vals = []
     for cell, L in zip(df["cell"], df[col]):

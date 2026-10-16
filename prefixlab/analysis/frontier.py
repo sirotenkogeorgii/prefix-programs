@@ -29,7 +29,9 @@ def hier_totals(h: pd.DataFrame, ops, dcol: str = "D_sampled") -> pd.DataFrame:
     for grp, g in h.groupby("group"):
         for op in ops:
             best = None
+            n_members = g.member.nunique()
             for (k, beta), gg in g.groupby(["k", "beta"]):
+                assert len(gg) == n_members, f"{grp} k={k} beta={beta}: {len(gg)} rows for {n_members} members"
                 if (gg[dcol] <= op + 1e-9).all():
                     tot = float(gg.kl_centre_bits.iloc[0] + gg.kl_dev_bits.sum())
                     if best is None or tot < best["total"]:

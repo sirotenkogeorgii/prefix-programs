@@ -31,7 +31,13 @@ def plot_curves(sweepD: pd.DataFrame, conds=("none", "lang", "task"), col: str =
         for op in ops:
             ax.axhline(op, color="grey", lw=0.6, ls="--")
         ax.set_xscale("log", base=2); ax.set_title(task); ax.set_xlabel("slots k"); ax.grid(alpha=0.3)
-    axes[0].set_ylabel("normalized distortion D̂"); axes[0].legend(fontsize=7, ncol=2)
+    axes[0].set_ylabel("normalized distortion D̂")
+    handles, labels = {}, []
+    for ax in axes:
+        for h, l in zip(*ax.get_legend_handles_labels()):
+            if l not in handles:
+                handles[l] = h
+    axes[-1].legend(handles.values(), handles.keys(), fontsize=7, ncol=2)
     fig.tight_layout()
     return fig
 
@@ -105,13 +111,13 @@ def plot_mechanism(profiles: dict[str, pd.DataFrame]):
 
 
 def plot_trajectories(trajs: dict[str, pd.DataFrame]):
-    """KL bits and dev bits/token vs step for a few runs (the overshoot / selection story)."""
+    """KL bits (total for flat runs, centre KL for hierarchical ones) and dev bits/token vs step."""
     fig, axes = plt.subplots(1, 2, figsize=(9, 3.4))
     for name, t in trajs.items():
         kl = t.kl_bits if "kl_bits" in t else t.kl_centre_bits
-        axes[0].plot(t.step, kl, marker=".", label=name)
+        axes[0].plot(t.step, kl, marker=".", label=name + ("" if "kl_bits" in t else " [centre KL]"))
         axes[1].plot(t.step, t.dev_bits_per_token, marker=".", label=name)
-    axes[0].set_yscale("log"); axes[0].set_ylabel("KL (bits)"); axes[0].set_xlabel("step"); axes[0].grid(alpha=0.3); axes[0].legend(fontsize=7)
+    axes[0].set_yscale("log"); axes[0].set_ylabel("KL (bits; centre KL for hierarchical runs)"); axes[0].set_xlabel("step"); axes[0].grid(alpha=0.3); axes[0].legend(fontsize=7)
     axes[1].set_ylabel("dev bits/token"); axes[1].set_xlabel("step"); axes[1].grid(alpha=0.3)
     fig.tight_layout()
     return fig

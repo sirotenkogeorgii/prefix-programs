@@ -122,7 +122,7 @@ def test_compose_holdout_table_and_regime2_m_star():
                        dict(cell="recall-de", cond="none", design="A", k=4, seed=0, D=0.08)])
     ho = compose.holdout_table(c, sw).set_index("cell")
     assert ho.loc["translation-ru", "D_assembled"] == 0.30 and ho.loc["translation-ru", "D_trained"] == 0.02
-    assert ho.loc["recall-de", "D_designA"] == 0.08 and ho.loc["recall-de", "gap_closed"] == pytest.approx(0.30)
+    assert ho.loc["recall-de", "D_designA_k4"] == 0.08 and ho.loc["recall-de", "gap_closed"] == pytest.approx(0.30)
     r = pd.DataFrame([dict(cell="translation-ru", k=0, m=m, bits_per_token_after=a, bits_per_token_real_input=2.0, bits_per_token_no_input=3.5)
                       for m, a in ((1, 1.2), (2, 0.15), (4, 0.01))])
     ms = regime2.m_star_table(r, frac=0.1)

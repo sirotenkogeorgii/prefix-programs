@@ -1,9 +1,9 @@
-"""Normalized distortion, slot complexity k*, and bootstrap intervals."""
+"""Slot complexity k* on the cell scale from load.attach_D."""
 import numpy as np
 import pandas as pd
-import pytest
 
-from prefixlab.analysis.curves import attach_normalized_distortion, bootstrap_mean_ci, k_star, paired_bootstrap_ci
+from prefixlab.analysis import load
+from prefixlab.analysis.curves import k_star
 
 
 def _df():
@@ -15,34 +15,17 @@ def _df():
         dict(cell="translation-ru", cond="none", design="A", k=2, seed=1, test_bits_per_token=2.7),
         dict(cell="translation-ru", cond="none", design="A", k=4, seed=0, test_bits_per_token=2.1),
         dict(cell="recall-ru", cond="none", design="none", k=0, seed=0, test_bits_per_token=3.0),
-        dict(cell="recall-ru", cond="none", design="A", k=1, seed=0, test_bits_per_token=2.0),  # no floor -> NaN
+        dict(cell="recall-ru", cond="none", design="A", k=1, seed=0, test_bits_per_token=2.0),  # no LoRA: best prefix is the floor
     ]
     return pd.DataFrame(rows)
 
 
-def test_normalized_distortion_uses_cell_floor_and_no_prefix():
-    df = attach_normalized_distortion(_df())
-    a = df[(df.design == "A") & (df.cell == "translation-ru")].set_index(["k", "seed"])["D_hat"]
-    assert a[(1, 0)] == pytest.approx(0.75)
-    assert a[(2, 0)] == pytest.approx(0.25)
-    assert a[(2, 1)] == pytest.approx(0.35)
-    assert a[(4, 0)] == pytest.approx(0.05)
-    assert np.isnan(df[(df.cell == "recall-ru") & (df.design == "A")]["D_hat"].iloc[0])
-
-
-def test_k_star_is_smallest_k_whose_seed_mean_reaches_the_level():
-    df = attach_normalized_distortion(_df())
-    assert k_star(df, "translation-ru", "none", level=0.30) == 2  # mean(0.25, 0.35) = 0.30
-    assert k_star(df, "translation-ru", "none", level=0.25) == 4
-    assert k_star(df, "translation-ru", "none", level=0.01) is None
-
-
-def test_bootstrap_intervals():
-    rng = np.random.default_rng(0)
-    x = rng.normal(5.0, 1.0, size=400)
-    lo, hi = bootstrap_mean_ci(x, n_boot=500, seed=0)
-    assert lo < x.mean() < hi and hi - lo < 0.5
-    lo2, hi2 = paired_bootstrap_ci(x, x, n_boot=200, seed=0)
-    assert lo2 == pytest.approx(0.0) and hi2 == pytest.approx(0.0)
-    lo3, hi3 = paired_bootstrap_ci(x + 1.0, x, n_boot=200, seed=0)
-    assert lo3 == pytest.approx(1.0) and hi3 == pytest.approx(1.0)
+def test_k_star_uses_seed_means_and_returns_none_when_unreached():
+    df = load.attach_D(_df(), load.floors(_df()))
+    assert df[(df.cell == "recall-ru") & (df.design == "A")].D.iloc[0] == 0.0
+    assert k_star(df, "translation-ru", "none", 0.75) == 1
+    assert k_star(df, "translation-ru", "none", 0.30) == 2   # seed mean 0.30 at k=2
+    assert k_star(df, "translation-ru", "none", 0.10) == 4
+    assert k_star(df, "translation-ru", "none", 0.01) is None
+    assert k_star(df, "recall-ru", "none", 0.5) == 1
+    assert k_star(df, "recall-de", "none", 0.5) is None

@@ -1,4 +1,5 @@
-scheme,bits,complete
-task-centred hierarchy,33524.55123901367,True
-independent flat programs,37571.34295654297,True
-language-centred hierarchy,53475.78749084473,True
+scheme,bits,complete,protocol
+task-centred hierarchy,33524.55123901367,True,hier (prereg selection)
+independent flat programs,37571.34295654297,True,flat (prereg)
+language-centred hierarchy,53475.78749084473,True,hier (prereg selection)
+independent flat programs,17618.59539794922,True,flat2 (corrected) + flat on continuation

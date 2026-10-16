@@ -6,14 +6,14 @@ import pandas as pd
 
 def holdout_table(c: pd.DataFrame, sweepD: pd.DataFrame, k_ref: int = 4) -> pd.DataFrame:
     """One row per held-out cell: D̂ of the zero-shot assembled prefix, D̂ when trained on (holdout=none, same slots),
-    and the Design A reference at k_ref (seed mean)."""
+    and the Design A reference at k_ref slots (seed mean; not matched to k_task + k_lang)."""
     ref = sweepD[(sweepD.design == "A") & (sweepD.cond == "none") & (sweepD.k == k_ref)].groupby("cell").D.mean()
     rows = []
     for r in c[c.held_out.astype(bool)].itertuples():
         trained = c[(c.holdout == "none") & (c.k_task == r.k_task) & (c.k_lang == r.k_lang) & (c.cell == r.cell)]
         rows.append(dict(cell=r.cell, k_task=r.k_task, k_lang=r.k_lang, holdout=r.holdout, D_assembled=float(r.D),
                          D_trained=float(trained.D.iloc[0]) if len(trained) else float("nan"),
-                         D_designA=float(ref.get(r.cell, float("nan")))))
+                         D_designA_k4=float(ref.get(r.cell, float("nan")))))
     df = pd.DataFrame(rows)
     if len(df):
         df["gap_closed"] = 1.0 - df.D_assembled  # fraction of the no-prefix -> floor gap closed without training on the cell

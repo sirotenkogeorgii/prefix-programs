@@ -30,7 +30,7 @@ fontsize: 10pt
 
 - Translation: one slot reaches $\hat D \le 0.10$ in every language. Recall needs 2–16 and is still improving at $k = 32$.
 - One trained slot beats the natural‑language prompt: recall NL prompt $\hat D$ 0.91–0.96, one slot 0.13–0.41.
-- Telling the model the language or the task saves < 1 slot on average. Continuation: floor ≈ no prefix, unmeasurable.
+- Telling the model the language or the task saves 1.8 slots on average, 8 of them from recall‑en. Continuation: floor ≈ no prefix, unmeasurable.
 
 ## Result 2: description length in bits
 
@@ -45,23 +45,26 @@ fontsize: 10pt
 - A translation program ≈ 500 bits; Russian recall 5×; English recall dearest, also on the 4,212 items shared by all three recall test sets.
 - Task ordering follows the learning gap (H1 yes); language ordering does **not** follow exposure (H1 no).
 
-## Result 3: task is the shared factor, language the cheap modifier
+## Result 3: task, not language, is the shared factor
 
-![](../figures/hier_bars.png){width=58%}
+![](../figures/hier_bars.png){width=52%}
 
-| code for all 8 cells at $\hat D \le 0.25$ | bits |
-|---|---|
-| one centre per task + language deviations | 33,500 |
-| eight independent programs | 37,600 |
-| one centre per language + task deviations | 53,500 |
+| code for all 8 cells at $\hat D \le 0.25$ | protocol | bits |
+|---|---|---|
+| one centre per task + language deviations | prereg. selection | 33,500 |
+| eight independent programs | prereg. | 37,600 |
+| one centre per language + task deviations | prereg. selection | 53,500 |
+| eight independent programs | corrected | 17,600 |
+
+Task‑centred beats language‑centred by 37%. Whether a hierarchy beats independent programs is **not established**: the corrected protocol halves the independent programs and the hierarchy was not rerun.
 
 ## What a language costs, what a task costs
 
-- Given the **translation** centre: Russian 485 bits, German 662 bits. Under half a standalone program.
+- Given the **translation** centre: Russian 485 bits, German 662 bits (0.55–0.69 of a standalone program under the same protocol, 0.9–1.5 under the corrected one).
 - Given the **recall** centre: a language costs 3,300–4,000 bits.
-- Given a **language** centre: continuation 100–200 bits, translation 440–630, recall 5,300–26,200.
+- Given a **language** centre: continuation 110–180 bits (ru, de) or 740 (en), translation 440–630, recall 5,300–26,200.
 - Recall is the program that cannot be shared; the language‑centred code pays for it three times.
-- For translation alone the hierarchy does not pay (2,733 vs 1,893 bits): the shared centre is dearer than either specialised program.
+- For translation alone the hierarchy does not pay (2,733 vs 1,893 prereg. / 978 corrected bits): the shared centre is dearer than either specialised program.
 
 ## Result 4: composition and distance
 
@@ -82,16 +85,16 @@ Same‑task warm start costs 0.85 of scratch, same‑language 0.95. Silhouettes 
 
 ![](../figures/mechanism.png){width=100%}
 
-- Patching the prefix positions into **block 0 alone** recovers 70–94% of the effect for translation and continuation, 36–58% for recall (secondary peaks at blocks 17, 25).
-- A translation program is copied into the token stream in the first block; a recall program is read repeatedly, deep in the network.
-- Language deviation vs task centre (H5): both peak at block 0; the depth profile splits by task, not by prefix part.
+- Patching the prefix positions into **block 0 alone** recovers 70–94% of the effect for translation and continuation, 36–58% for recall (secondary peak at block 17).
+- A translation program is copied into the token stream in the first block; a recall program is read in several places, deep in the network.
+- H5: every probe peaks at block 0, but the **language deviation is read again at blocks 16–17** (late mass 1.9 vs early 1.6 on recall) while the task centre is not (0.5 vs 1.0): a split by part, opposite to H5's direction.
 
 ## Result 6: the objective is right, the search is hard
 
 ![](../figures/trajectories.png){width=62%}
 
-- lr 0.05 = 2 prior σ per step to KL overshoots by 20k (k=2) to 300k bits (k=8), then decays.
-- Selecting the checkpoint by mean‑posterior distortion picks the high‑rate step; the mean is not the coded object (β=3: mean $\hat D$ 0.35–0.56, samples 0.06–0.17).
+- lr 0.05 = 2 prior σ per step: the centre KL peaks at a median 26k bits (k=2) to 144k (k=8), up to 549k, between steps 100 and 800, then decays.
+- Selecting the checkpoint by mean‑posterior distortion picks a high‑rate step (up to 20× the final rate); the mean is not the coded object (translation, β=3: mean $\hat D$ 0.35–0.56, samples 0.06–0.17).
 - Corrected protocol (lr 0.01, select on the objective, score samples): frontier **20–71% lower** with 4 runs per cell instead of 9.
 - Shaw et al. (2026): 870 bits from a compiled init vs 2.8M from random init. Here the gap closes by selection and step size.
 
@@ -100,10 +103,10 @@ Same‑task warm start costs 0.85 of scratch, same‑language 0.95. Silhouettes 
 | | outcome |
 |---|---|
 | H1 cost orderings | task yes (recall far above translation); language no (English dearest) |
-| H2 cheap language | slots: equal; bits: task given language 2–7× language given task on recall |
+| H2 cheap language | slots: equal; bits: task given language 1.3–7.8× language given task on recall |
 | H3 separability | partial on translation, not on recall |
-| H4 task‑organised distance | direction yes, structure no (silhouette 0.004 vs −0.09) |
-| H5 depth split | by task, not by prefix part |
+| H4 task‑organised distance | direction yes, structure no, not significant (silhouette 0.004 vs −0.09) |
+| H5 depth split | language deviation read early and late, task centre early: opposite to H5 |
 | H6 input compressibility | one vector suffices with the task prefix (exploratory) |
 
 ## Limitations and next steps
