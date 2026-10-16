@@ -47,16 +47,21 @@ fontsize: 10pt
 
 ## Result 3: task, not language, is the shared factor
 
-![](../figures/hier_bars.png){width=52%}
+![](../figures/hier_bars.png){width=78%}
 
-| code for all 8 cells at $\hat D \le 0.25$ | protocol | bits |
+Centre paid once per group, each deviation once per member; cheapest run with every member at $\hat D \le 0.25$.
+
+## Three codes for the same eight cells
+
+| code (all 8 cells, $\hat D \le 0.25$) | protocol | bits |
 |---|---|---|
-| one centre per task + language deviations | prereg. selection | 33,500 |
+| centre per task + language deviations | prereg. selection | 33,500 |
 | eight independent programs | prereg. | 37,600 |
-| one centre per language + task deviations | prereg. selection | 53,500 |
+| centre per language + task deviations | prereg. selection | 53,500 |
 | eight independent programs | corrected | 17,600 |
 
-Task‑centred beats language‑centred by 37%. Whether a hierarchy beats independent programs is **not established**: the corrected protocol halves the independent programs and the hierarchy was not rerun.
+- Task‑centred beats language‑centred by 37%; almost all of the difference is recall.
+- Whether a hierarchy beats independent programs is **not established**: the corrected protocol halves the independent programs, and the hierarchy was not rerun under it.
 
 ## What a language costs, what a task costs
 
