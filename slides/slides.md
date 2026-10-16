@@ -43,11 +43,11 @@ fontsize: 10pt
 | recall‑en | — (best 0.23) | 7,155 |
 
 - A translation program ≈ 500 bits; Russian recall 5×; English recall dearest, also on the 4,212 items shared by all three recall test sets.
-- Task ordering follows the learning gap (H1 ✓); language ordering does **not** follow exposure (H1 ✗).
+- Task ordering follows the learning gap (H1 yes); language ordering does **not** follow exposure (H1 no).
 
 ## Result 3: task is the shared factor, language the cheap modifier
 
-![](../figures/hier_bars.png)
+![](../figures/hier_bars.png){width=58%}
 
 | code for all 8 cells at $\hat D \le 0.25$ | bits |
 |---|---|
@@ -80,7 +80,7 @@ Same‑task warm start costs 0.85 of scratch, same‑language 0.95. Silhouettes 
 
 ## Result 5: where the program is read
 
-![](../figures/mechanism.png)
+![](../figures/mechanism.png){width=100%}
 
 - Patching the prefix positions into **block 0 alone** recovers 70–94% of the effect for translation and continuation, 36–58% for recall (secondary peaks at blocks 17, 25).
 - A translation program is copied into the token stream in the first block; a recall program is read repeatedly, deep in the network.
@@ -88,9 +88,9 @@ Same‑task warm start costs 0.85 of scratch, same‑language 0.95. Silhouettes 
 
 ## Result 6: the objective is right, the search is hard
 
-![](../figures/trajectories.png)
+![](../figures/trajectories.png){width=62%}
 
-- lr 0.05 = 2 prior σ per step → KL overshoots by 20k (k=2) to 300k bits (k=8), then decays.
+- lr 0.05 = 2 prior σ per step to KL overshoots by 20k (k=2) to 300k bits (k=8), then decays.
 - Selecting the checkpoint by mean‑posterior distortion picks the high‑rate step; the mean is not the coded object (β=3: mean $\hat D$ 0.35–0.56, samples 0.06–0.17).
 - Corrected protocol (lr 0.01, select on the objective, score samples): frontier **20–71% lower** with 4 runs per cell instead of 9.
 - Shaw et al. (2026): 870 bits from a compiled init vs 2.8M from random init. Here the gap closes by selection and step size.
@@ -99,16 +99,16 @@ Same‑task warm start costs 0.85 of scratch, same‑language 0.95. Silhouettes 
 
 | | outcome |
 |---|---|
-| H1 cost orderings | task ✓ (recall ≫ translation); language ✗ (English dearest) |
+| H1 cost orderings | task yes (recall far above translation); language no (English dearest) |
 | H2 cheap language | slots: equal; bits: task given language 2–7× language given task on recall |
 | H3 separability | partial on translation, not on recall |
-| H4 task‑organised distance | direction ✓, structure ✗ (silhouette 0.004 vs −0.09) |
+| H4 task‑organised distance | direction yes, structure no (silhouette 0.004 vs −0.09) |
 | H5 depth split | by task, not by prefix part |
 | H6 input compressibility | one vector suffices with the task prefix (exploratory) |
 
 ## Limitations and next steps
 
-- Two seeds; recall budget‑bound (3000 steps: $\hat D$ 0.043 → 0.032 and falling); continuation unmeasurable; distance matrix one seed.
+- Two seeds; recall budget‑bound (3000 steps: $\hat D$ 0.043 to 0.032 and falling); continuation unmeasurable; distance matrix one seed.
 - Variational protocol corrected after preregistration; both reported. Hierarchical rates are upper bounds (old selection rule).
 - Research version, same code: scale axis 0.5B–7B, 20+ languages by resource level, per‑column mixture prior, charge $\log_2|k\text{-grid}|$ bits for $k$, step size in prior‑σ units.
 - Repo: `sirotenkogeorgii/prefix-programs`, branch `prefixlab`; `01_figures.ipynb` regenerates everything in under a minute.
