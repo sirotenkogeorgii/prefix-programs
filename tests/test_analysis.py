@@ -123,6 +123,18 @@ def test_nestings_matched():
     assert np.isnan(n.loc[(4, 1.0), "task_bits"]) and n.loc[(4, 1.0), "lang_cells"] == 1
 
 
+def test_frontier_by_seed():
+    f = pd.DataFrame([
+        dict(cell="c1", k=2, seed=0, beta=1.0, kl_bits=1000, D_sampled=0.08),
+        dict(cell="c1", k=4, seed=0, beta=3.0, kl_bits=600, D_sampled=0.12),
+        dict(cell="c1", k=2, seed=1, beta=1.0, kl_bits=1100, D_sampled=0.09),
+        dict(cell="c1", k=4, seed=1, beta=3.0, kl_bits=500, D_sampled=0.30),
+    ])
+    b = frontier.frontier_by_seed(f, [0.25, 0.10], cells=["c1"]).set_index("op")
+    assert b.loc[0.25, "bits_s0"] == 600 and b.loc[0.25, "bits_s1"] == 1100 and abs(b.loc[0.25, "ratio_s1_s0"] - 1100 / 600) < 1e-9
+    assert b.loc[0.10, "bits_s0"] == 1000 and b.loc[0.10, "bits_s1"] == 1100
+
+
 def test_distance_symmetrisation_groups_and_silhouette():
     cells = ["translation-ru", "translation-de", "recall-ru", "recall-de"]
     rows = []

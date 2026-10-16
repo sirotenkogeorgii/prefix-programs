@@ -44,7 +44,7 @@ def plot_curves(sweepD: pd.DataFrame, conds=("none", "lang", "task"), col: str =
 
 def plot_frontier(tables: dict[str, pd.DataFrame], cells, dcol: str = "D_sampled", ops=(0.25, 0.10)):
     """Rate–distortion scatter per cell: KL bits (log) vs D̂, one marker style per table (flat / flat2)."""
-    markers = {"flat": "o", "flat2": "s"}
+    markers = {"flat": "o", "flat2": "s", "flat2 seed 1": "D"}
     fig, axes = plt.subplots(1, len(cells), figsize=(3.4 * len(cells), 3.4), sharey=True)
     for ax, cell in zip(np.atleast_1d(axes), cells):
         for name, df in tables.items():

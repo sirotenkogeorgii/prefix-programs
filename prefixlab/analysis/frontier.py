@@ -23,6 +23,22 @@ def frontier(df: pd.DataFrame, ops, dcol: str = "D_sampled", cells=None) -> pd.D
     return pd.DataFrame(rows)
 
 
+def frontier_by_seed(df: pd.DataFrame, ops, dcol: str = "D_sampled", cells=None) -> pd.DataFrame:
+    """Per (cell, op): the frontier of each seed side by side, with the ratio seed 1 / seed 0. Each seed is an
+    independent replicate of the whole run grid, so the per-seed frontier is the unit of replication."""
+    seeds = sorted(df.seed.unique())
+    parts = []
+    for sd in seeds:
+        fr = frontier(df[df.seed == sd], ops, dcol=dcol, cells=cells)[["cell", "op", "bits", "k", "beta", "D"]]
+        parts.append(fr.rename(columns={c: f"{c}_s{sd}" for c in ("bits", "k", "beta", "D")}))
+    out = parts[0]
+    for p_ in parts[1:]:
+        out = out.merge(p_, on=["cell", "op"], how="outer")
+    if len(seeds) >= 2:
+        out["ratio_s1_s0"] = out[f"bits_s{seeds[1]}"] / out[f"bits_s{seeds[0]}"]
+    return out
+
+
 def hier_totals(h: pd.DataFrame, ops, dcol: str = "D_sampled") -> pd.DataFrame:
     """Per (group, op): the cheapest run (k, beta) whose members all reach op; total = centre + sum of deviations."""
     rows = []

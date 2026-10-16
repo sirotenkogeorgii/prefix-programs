@@ -28,7 +28,7 @@ Distortion is the teacher‑forced code length $L$ of the target in bits per tar
 
 **Two variational protocols.** The preregistered protocol (`flat`) used learning rate 0.05, the checkpoint with the lowest dev distortion at the posterior mean, and posterior $\sigma$ initialised at five times the prior. Its histories (Section 4.8) showed that this protocol overshoots the rate and selects on the wrong statistic. A corrected protocol (`flat2`) uses learning rate 0.01, dev distortion scored on posterior samples, the checkpoint with the lowest dev objective (distortion plus $\beta$ times the rate), and $\sigma$ initialised at the prior. `flat2` was run on the five measurable cells at $k \in \{2,4\}$, $\beta \in \{1,3\}$ and is the headline where it exists; `flat` is reported alongside. The hierarchical design was run under both: the preregistered selection rule at $k \in \{2,4,8\}$, $\beta \in \{0.3,1,3\}$ (with the corrected $\sigma$ initialisation), and the corrected protocol on the `flat2` grid, $k \in \{2,4\}$, $\beta \in \{1,3\}$. Both nestings were rerun under the corrected protocol, which is the headline for every hierarchical comparison; the preregistered hierarchical runs are reported for the record.
 
-**Inventory.** 273 Design A, baseline and floor rows; 72 flat and 20 flat2 rows; 144 hierarchical rows (54 joint runs) under the preregistered rule and 64 (24 joint runs) under the corrected protocol; 72 composition rows; 72 distance rows; 32 regime 2 rows; 1,120 mechanism rows. About 34 A100 hours. Every number below is recomputed by `notebooks/01_figures.ipynb` from the CSVs.
+**Inventory.** 273 Design A, baseline and floor rows; 72 flat and 40 flat2 rows (two seeds); 144 hierarchical rows (54 joint runs) under the preregistered rule and 64 (24 joint runs) under the corrected protocol; 72 composition rows; 72 distance rows; 32 regime 2 rows; 1,120 mechanism rows. About 34 A100 hours. Every number below is recomputed by `notebooks/01_figures.ipynb` from the CSVs.
 
 # Results
 
@@ -54,7 +54,7 @@ Two observations make the slot count unusable as a description length. First, th
 
 ![Rate against distortion per cell, every variational run; circles are the preregistered protocol, squares the corrected one. Distortion is scored on posterior samples.](../figures/frontier.png)
 
-Table 2 is the headline: the smallest code length among runs reaching each operating point, with the preregistered protocol beside the corrected one.
+Table 2 is the headline: the smallest code length among runs reaching each operating point, with the preregistered protocol beside the corrected one. A second seed of the corrected protocol reproduces the corrected column within 4% on translation‑ru, recall‑ru and recall‑en and within 17–22% on recall‑de and translation‑de, in opposite directions (Table 7); the cell ordering is the same under both seeds, and the headline keeps the preregistered first seed.
 
 | cell | bits at $\hat D \le 0.10$ (flat2) | bits at $\hat D \le 0.25$ (flat2) | flat2 best $\hat D$ | flat at $\hat D \le 0.25$ |
 |---|---|---|---|---|
@@ -154,7 +154,7 @@ The 12 task‑grouped hierarchical runs under the corrected protocol show none o
 
 # Deviations and limitations
 
-Three deviations from the preregistration are recorded in the project ledger. The floor is the better of LoRA and the best prefix, because prefixes beat LoRA on five cells. Continuation is excluded from headline claims as unmeasurable. The variational protocol was corrected after the preregistered runs, for the reasons in Section 4.8, and the corrected runs are the headline; both are reported. Two seeds were preregistered where the proposal had planned three, and the recall budget binds at 1500 steps. Both nestings were rerun under the corrected protocol on the flat2 grid ($k \in \{2,4\}$, $\beta \in \{1,3\}$, $\tau = 1$), so the hierarchical comparisons are like for like but rest on four runs per group and one τ. Under the corrected protocol every rate, flat or hierarchical, is still falling at the end of the 1500‑step budget, so all are upper bounds. One corrected run (English centre, $k = 2$, $\beta = 1$) selected a transient dip in the dev loss at step 500; selection on the objective is not immune to dev noise. The distance matrix is one seed. The mechanism probes patch attention inputs at the prefix positions; a residual‑stream patch would answer a slightly different question. The τ of the hierarchical design was first run in absolute embedding units, which made the deviation prior forty times wider than the global prior; those runs are kept as a control and not used.
+Three deviations from the preregistration are recorded in the project ledger. The floor is the better of LoRA and the best prefix, because prefixes beat LoRA on five cells. Continuation is excluded from headline claims as unmeasurable. The variational protocol was corrected after the preregistered runs, for the reasons in Section 4.8, and the corrected runs are the headline; both are reported. Two seeds were preregistered where the proposal had planned three; the second seed of the corrected variational protocol is reported as a replication (Table 7), and the hierarchies and the distance matrix are one seed. The recall budget binds at 1500 steps. Both nestings were rerun under the corrected protocol on the flat2 grid ($k \in \{2,4\}$, $\beta \in \{1,3\}$, $\tau = 1$), so the hierarchical comparisons are like for like but rest on four runs per group and one τ. Under the corrected protocol every rate, flat or hierarchical, is still falling at the end of the 1500‑step budget, so all are upper bounds. One corrected run (English centre, $k = 2$, $\beta = 1$) selected a transient dip in the dev loss at step 500; selection on the objective is not immune to dev noise. The distance matrix is one seed. The mechanism probes patch attention inputs at the prefix positions; a residual‑stream patch would answer a slightly different question. The τ of the hierarchical design was first run in absolute embedding units, which made the deviation prior forty times wider than the global prior; those runs are kept as a control and not used.
 
 # What a research version would do
 
@@ -178,3 +178,14 @@ The same code runs the scale axis (Qwen2.5 0.5B to 7B), twenty or more FLORES la
 # Appendix: reproduction
 
 Repository `sirotenkogeorgii/prefix-programs`, branch `prefixlab`. `results_sync/` holds every result table, per‑example bits, training histories and the prefix checkpoints. `notebooks/01_colab_runner.ipynb` reproduces the runs on an A100 (about 32 hours); `notebooks/01_figures.ipynb` regenerates every figure and table here from the CSVs and `prereg.json` in under a minute; `notebooks/02_live_demo.ipynb` trains one prefix live.
+
+
+| cell | seed 0, bits at 0.25 (k, β) | seed 1, bits at 0.25 (k, β) | ratio |
+|---|---|---|---|
+| translation‑ru | 542 (4, 3) | 534 (4, 3) | 0.99 |
+| translation‑de | 436 (2, 3) | 533 (4, 3) | 1.22 |
+| recall‑ru | 2,419 (2, 3) | 2,486 (2, 3) | 1.03 |
+| recall‑de | 3,343 (4, 3) | 2,783 (2, 3) | 0.83 |
+| recall‑en | 7,155 (4, 1) | 6,850 (4, 1) | 0.96 |
+
+Table 7. Replication of the corrected‑protocol frontier with a second seed: each seed's frontier is an independent replicate of the whole run grid. The binding level is 0.25 for recall‑de and recall‑en and 0.10 for the other cells, where the two levels coincide.

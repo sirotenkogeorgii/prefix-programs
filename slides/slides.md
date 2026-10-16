@@ -44,6 +44,7 @@ fontsize: 10pt
 
 - A translation program ≈ 500 bits; Russian recall 5×; English recall dearest, also on the 4,212 items shared by all three recall test sets.
 - Task ordering follows the learning gap (H1 yes); language ordering does **not** follow exposure (H1 no).
+- Replication seed (corrected protocol): within 4% on three cells, 17–22% on recall‑de / translation‑de in opposite directions; same ordering.
 
 ## Result 3: neither nesting is cheaper, and sharing does not compress
 
