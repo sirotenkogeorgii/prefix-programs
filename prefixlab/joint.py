@@ -67,7 +67,7 @@ def train_joint(model, module: torch.nn.Module, members: list, data_by_member: d
             per[str(m)] = ev.bits_per_token
             bits += ev.bits_total; toks += ev.n_tokens
             if kl_for is not None:
-                kl_term += ev.n_tokens * float(kl_for(m)) / math.log(2)  # member's KL rate in bits/token, weighted by its dev tokens
+                kl_term += ev.n_tokens * float(kl_for(m).detach()) / math.log(2)  # member KL rate in bits/token, weighted by dev tokens
         dev_bits = bits / max(toks, 1)
         return dev_bits, per, dev_bits + cfg.beta * kl_term / max(toks, 1)
 
