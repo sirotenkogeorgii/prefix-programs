@@ -13,3 +13,8 @@ regime2,recall-ru,4,0,none,0,regime2_recall-ru_none_k0_m4_s0,100,200,0.1,0.00011
 regime2,recall-ru,8,0,none,0,regime2_recall-ru_none_k0_m8_s0,100,200,0.1,4.680985713400589e-05,3.064830007101235,7.206882532100725,401,results/per_example/regime2_recall-ru_none_k0_m8_s0.json
 regime2,continuation-ru,1,0,none,0,regime2_continuation-ru_none_k0_m1_s0,100,200,0.1,0.5639477068156004,3.7074343551635742,2.911487982940674,2500,results/per_example/regime2_continuation-ru_none_k0_m1_s0.json
 regime2,continuation-ru,2,0,none,0,regime2_continuation-ru_none_k0_m2_s0,100,200,0.1,0.1486269901201129,3.7074343551635742,2.911487982940674,2500,results/per_example/regime2_continuation-ru_none_k0_m2_s0.json
+regime2,continuation-ru,4,0,none,0,regime2_continuation-ru_none_k0_m4_s0,100,200,0.1,0.0030958133570849,3.7074343551635742,2.911487982940674,2500,results/per_example/regime2_continuation-ru_none_k0_m4_s0.json
+regime2,continuation-ru,8,0,none,0,regime2_continuation-ru_none_k0_m8_s0,100,200,0.1,0.0013144508850295,3.7074343551635742,2.911487982940674,2500,results/per_example/regime2_continuation-ru_none_k0_m8_s0.json
+regime2,translation-ru,1,4,none,0,regime2_translation-ru_none_k4_m1_s0,100,200,0.1,0.2372083120274928,3.251597178584102,1.3926127531424686,4893,results/per_example/regime2_translation-ru_none_k4_m1_s0.json
+regime2,translation-ru,2,4,none,0,regime2_translation-ru_none_k4_m2_s0,100,200,0.1,0.0213178392745601,3.251597178584102,1.3926127531424686,4893,results/per_example/regime2_translation-ru_none_k4_m2_s0.json
+regime2,translation-ru,4,4,none,0,regime2_translation-ru_none_k4_m4_s0,100,200,0.1,0.005288753922341208,3.251597178584102,1.3926127531424686,4893,results/per_example/regime2_translation-ru_none_k4_m4_s0.json
