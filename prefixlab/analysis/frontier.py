@@ -100,6 +100,24 @@ def matched_hyperparameters(h: pd.DataFrame, flat: pd.DataFrame, dcol: str = "D_
     return out
 
 
+def nestings_matched(hier_task: pd.DataFrame, hier_lang: pd.DataFrame, dcol: str = "D_sampled") -> pd.DataFrame:
+    """Per (k, beta): total bits (sum over groups of centre + deviations) and worst member distortion under the two
+    nestings, with the number of cells each covers (a nesting with a missing run covers fewer than all cells)."""
+    def total(t: pd.DataFrame) -> float:
+        return float(sum(g.kl_centre_bits.iloc[0] + g.kl_dev_bits.sum() for _, g in t.groupby("group")))
+    keys = sorted(set(map(tuple, hier_task[["k", "beta"]].drop_duplicates().to_numpy())) | set(map(tuple, hier_lang[["k", "beta"]].drop_duplicates().to_numpy())))
+    rows = []
+    for k, beta in keys:
+        gt = hier_task[(hier_task.k == k) & (hier_task.beta == beta)]
+        gl = hier_lang[(hier_lang.k == k) & (hier_lang.beta == beta)]
+        rows.append(dict(k=int(k), beta=float(beta),
+                         task_bits=total(gt) if len(gt) else np.nan, task_maxD=float(gt[dcol].max()) if len(gt) else np.nan, task_cells=len(gt),
+                         lang_bits=total(gl) if len(gl) else np.nan, lang_maxD=float(gl[dcol].max()) if len(gl) else np.nan, lang_cells=len(gl)))
+    out = pd.DataFrame(rows)
+    out["lang_over_task"] = out.lang_bits / out.task_bits
+    return out
+
+
 def dev_trajectory(history: list[dict]) -> pd.DataFrame:
     """(step, dev_bits_per_token, kl_bits[, dev_objective, kl_centre_bits, kl_dev_bits...]) as a frame."""
     rows = []

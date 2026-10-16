@@ -23,6 +23,9 @@ task:recall,de,recall-de,14632,3943,0.15390107141915427,corrected
 task:recall,en,recall-en,14632,3200,0.22791658345429192,corrected
 task:translation,ru,translation-ru,604,225,0.05168098030828568,corrected
 task:translation,de,translation-de,604,200,0.05446308755350018,corrected
-lang:ru,translation,translation-ru,2108,465,0.03616720007293524,corrected
-lang:ru,recall,recall-ru,2108,6860,0.09399625041619247,corrected
-lang:ru,continuation,continuation-ru,2108,153,0.13598180968076679,corrected
+lang:de,translation,translation-de,827,257,0.061819337450569514,corrected
+lang:de,recall,recall-de,827,3417,0.19915677411712457,corrected
+lang:de,continuation,continuation-de,827,60,0.24074494083747286,corrected
+lang:ru,translation,translation-ru,904,201,0.06730965773423828,corrected
+lang:ru,recall,recall-ru,904,3189,0.10675913042673896,corrected
+lang:ru,continuation,continuation-ru,904,59,0.19012581023728417,corrected

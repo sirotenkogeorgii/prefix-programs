@@ -107,6 +107,22 @@ def test_group_vs_independent_and_matched_hyperparameters():
     assert np.isnan(m.loc[(4, 3.0), "independent_bits"])  # c2 has no k=4 run
 
 
+def test_nestings_matched():
+    ht = pd.DataFrame([
+        dict(group="task:t", k=2, beta=1.0, member="ru", cell="t-ru", kl_centre_bits=500, kl_dev_bits=100, D_sampled=0.05),
+        dict(group="task:t", k=2, beta=1.0, member="de", cell="t-de", kl_centre_bits=500, kl_dev_bits=150, D_sampled=0.20),
+    ])
+    hl = pd.DataFrame([
+        dict(group="lang:ru", k=2, beta=1.0, member="t", cell="t-ru", kl_centre_bits=300, kl_dev_bits=50, D_sampled=0.10),
+        dict(group="lang:de", k=2, beta=1.0, member="t", cell="t-de", kl_centre_bits=200, kl_dev_bits=60, D_sampled=0.30),
+        dict(group="lang:de", k=4, beta=1.0, member="t", cell="t-de", kl_centre_bits=100, kl_dev_bits=10, D_sampled=0.30),
+    ])
+    n = frontier.nestings_matched(ht, hl).set_index(["k", "beta"])
+    assert n.loc[(2, 1.0), "task_bits"] == 750 and n.loc[(2, 1.0), "lang_bits"] == 610 and n.loc[(2, 1.0), "lang_maxD"] == 0.30
+    assert n.loc[(2, 1.0), "task_cells"] == 2 and n.loc[(2, 1.0), "lang_cells"] == 2
+    assert np.isnan(n.loc[(4, 1.0), "task_bits"]) and n.loc[(4, 1.0), "lang_cells"] == 1
+
+
 def test_distance_symmetrisation_groups_and_silhouette():
     cells = ["translation-ru", "translation-de", "recall-ru", "recall-de"]
     rows = []
