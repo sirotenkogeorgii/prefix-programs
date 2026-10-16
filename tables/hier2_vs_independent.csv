@@ -1,0 +1,9 @@
+group,op,n_cells,hier_bits,hier_k,hier_beta,independent_bits,ratio,nesting
+task:continuation,0.25,3,666.8582763671875,4.0,3.0,3723.618896484375,0.17908875610143574,task-centred
+task:continuation,0.1,3,,,,,,task-centred
+task:recall,0.25,3,24972.193359375,4.0,1.0,12916.815673828125,1.933308796065993,task-centred
+task:recall,0.1,3,,,,,,task-centred
+task:translation,0.25,2,1028.7239379882812,4.0,3.0,978.1608276367188,1.0516920213148642,task-centred
+task:translation,0.1,2,1028.7239379882812,4.0,3.0,978.1608276367188,1.0516920213148642,task-centred
+lang:ru,0.25,3,9585.299346923828,2.0,1.0,4203.386169433594,2.2803756211186865,language-centred
+lang:ru,0.1,3,,,,,,language-centred

@@ -70,6 +70,41 @@ def test_frontier_and_hier_totals_and_scheme_comparison():
     assert np.isnan(tot.loc[0.10, "total"])
     cmp = frontier.scheme_comparison(fr.reset_index(), tot.reset_index(), tot.reset_index(), 0.25, ["c1", "c2"]).set_index("scheme")
     assert cmp.loc["independent flat programs", "bits"] == 2600 and cmp.loc["task-centred hierarchy", "bits"] == 750
+    # a hierarchy that covers only part of the cell list is not complete, even if every row it has reaches the level
+    h2 = pd.DataFrame([
+        dict(group="task:translation", k=2, beta=1.0, member="ru", cell="translation-ru", kl_centre_bits=500, kl_dev_bits=100, D_sampled=0.05),
+        dict(group="task:translation", k=2, beta=1.0, member="de", cell="translation-de", kl_centre_bits=500, kl_dev_bits=150, D_sampled=0.20),
+    ])
+    tot2 = frontier.hier_totals(h2, [0.25])
+    fr2 = frontier.frontier(pd.DataFrame([dict(cell="translation-ru", k=2, beta=1.0, kl_bits=1, D_sampled=0.1),
+                                          dict(cell="translation-de", k=2, beta=1.0, kl_bits=1, D_sampled=0.1),
+                                          dict(cell="recall-ru", k=2, beta=1.0, kl_bits=1, D_sampled=0.1)]), [0.25], cells=["translation-ru", "translation-de", "recall-ru"])
+    c2 = frontier.scheme_comparison(fr2, tot2, tot2, 0.25, ["translation-ru", "translation-de", "recall-ru"]).set_index("scheme")
+    assert not c2.loc["task-centred hierarchy", "complete"] and c2.loc["independent flat programs", "complete"]
+    c3 = frontier.scheme_comparison(fr2, tot2, tot2, 0.25, ["translation-ru", "translation-de"]).set_index("scheme")
+    assert c3.loc["task-centred hierarchy", "complete"] and c3.loc["independent flat programs", "complete"]
+
+
+def test_group_vs_independent_and_matched_hyperparameters():
+    h = pd.DataFrame([
+        dict(group="task:t", k=2, beta=1.0, member="ru", cell="c1", kl_centre_bits=500, kl_dev_bits=100, D_sampled=0.05),
+        dict(group="task:t", k=2, beta=1.0, member="de", cell="c2", kl_centre_bits=500, kl_dev_bits=150, D_sampled=0.20),
+        dict(group="task:t", k=4, beta=3.0, member="ru", cell="c1", kl_centre_bits=300, kl_dev_bits=50, D_sampled=0.05),
+        dict(group="task:t", k=4, beta=3.0, member="de", cell="c2", kl_centre_bits=300, kl_dev_bits=60, D_sampled=0.30),
+    ])
+    f = pd.DataFrame([
+        dict(cell="c1", k=2, seed=0, beta=1.0, kl_bits=1000, D_sampled=0.08),
+        dict(cell="c1", k=4, seed=0, beta=3.0, kl_bits=600, D_sampled=0.12),
+        dict(cell="c2", k=2, seed=0, beta=1.0, kl_bits=2000, D_sampled=0.20),
+    ])
+    tot = frontier.hier_totals(h, [0.25, 0.10])
+    fr = frontier.frontier(f, [0.25, 0.10], cells=["c1", "c2"])
+    g = frontier.group_vs_independent(h, tot, fr, [0.25, 0.10]).set_index("op")
+    assert g.loc[0.25, "hier_bits"] == 750 and g.loc[0.25, "independent_bits"] == 2600 and abs(g.loc[0.25, "ratio"] - 750 / 2600) < 1e-9
+    assert np.isnan(g.loc[0.10, "hier_bits"]) and np.isnan(g.loc[0.10, "independent_bits"])
+    m = frontier.matched_hyperparameters(h, f).set_index(["k", "beta"])
+    assert m.loc[(2, 1.0), "hier_bits"] == 750 and m.loc[(2, 1.0), "independent_bits"] == 3000 and m.loc[(2, 1.0), "independent_maxD"] == 0.20
+    assert np.isnan(m.loc[(4, 3.0), "independent_bits"])  # c2 has no k=4 run
 
 
 def test_distance_symmetrisation_groups_and_silhouette():

@@ -47,5 +47,7 @@ python -m pytest
 
 Variational runs: `--design flat` is the preregistered protocol; `--design flat2 --lr 0.01` the corrected one
 (checkpoint by dev objective, dev scored with posterior samples), which is the headline in the report.
+Hierarchical runs: `scripts/run_hier.py --protocol prereg` (default) writes `hier_task.csv` / `hier_lang.csv`;
+`--protocol corrected --lr 0.01` writes `hier2_task.csv` / `hier2_lang.csv`, the like-for-like comparison with flat2.
 
 Data: FLORES+ (CC BY-SA 4.0, gated) and mLAMA (CC BY-NC-SA 4.0). Model: Qwen2.5 base checkpoints.

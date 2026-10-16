@@ -22,7 +22,7 @@ fontsize: 10pt
 - Distortion: teacher‑forced bits per target token, normalised per cell
   $$\hat D = \frac{L - L_{\text{floor}}}{L_{\text{none}} - L_{\text{floor}}},\qquad L_{\text{floor}} = \min(\text{LoRA}, \text{best prefix})$$
 - Preregistered operating points $\hat D \le 0.25$ and $\le 0.10$.
-- 8 cells; ~32 A100 hours; every figure regenerated from CSVs.
+- 8 cells; ~34 A100 hours; every figure regenerated from CSVs.
 
 ## Result 1: slots are not a description length
 
@@ -58,18 +58,20 @@ Centre paid once per group, each deviation once per member; cheapest run with ev
 | centre per task + language deviations | prereg. selection | 33,500 |
 | eight independent programs | prereg. | 37,600 |
 | centre per language + task deviations | prereg. selection | 53,500 |
+| centre per task + language deviations | corrected | 26,700 |
 | eight independent programs | corrected | 17,600 |
 
 - Task‑centred beats language‑centred by 37%; almost all of the difference is recall.
-- Whether a hierarchy beats independent programs is **not established**: the corrected protocol halves the independent programs, and the hierarchy was not rerun under it.
+- A shared centre **saves no bits**: under the corrected protocol the hierarchy costs 1.5× the independent programs; parity on translation (1,029 vs 978), 1.9× on recall (24,972 vs 12,917).
+- At matched (k, β) the hierarchy costs 0.94–1.5× the sum of the flat2 runs; one β for all members then adds the rest.
 
 ## What a language costs, what a task costs
 
-- Given the **translation** centre: Russian 485 bits, German 662 bits (0.55–0.69 of a standalone program under the same protocol, 0.9–1.5 under the corrected one).
-- Given the **recall** centre: a language costs 3,300–4,000 bits.
-- Given a **language** centre: continuation 110–180 bits (ru, de) or 740 (en), translation 440–630, recall 5,300–26,200.
+- Given the **translation** centre (604 bits): Russian 225, German 200 bits, 0.41–0.46 of a standalone program (corrected protocol; 485 / 662 under the preregistered rule).
+- Given the **recall** centre (14,600 bits): a language costs 3,200–3,900 bits, more than a standalone Russian or German program.
+- Given a **language** centre (prereg.): continuation 110–180 bits (ru, de) or 740 (en), translation 440–630, recall 5,300–26,200; corrected ru rerun: 153 / 465 / 6,860.
 - Recall is the program that cannot be shared; the language‑centred code pays for it three times.
-- For translation alone the hierarchy does not pay (2,733 vs 1,893 prereg. / 978 corrected bits): the shared centre is dearer than either specialised program.
+- For translation alone the hierarchy is at best at parity: 1,029 vs 978 bits (corrected), 2,733 vs 1,893 (prereg.).
 
 ## Result 4: composition and distance
 
@@ -100,7 +102,7 @@ Same‑task warm start costs 0.85 of scratch, same‑language 0.95. Silhouettes 
 
 - lr 0.05 = 2 prior σ per step: the centre KL peaks at a median 26k bits (k=2) to 144k (k=8), up to 549k, between steps 100 and 800, then decays.
 - Selecting the checkpoint by mean‑posterior distortion picks a high‑rate step (up to 20× the final rate); the mean is not the coded object (translation, β=3: mean $\hat D$ 0.35–0.56, samples 0.06–0.17).
-- Corrected protocol (lr 0.01, select on the objective, score samples): frontier **20–71% lower** with 4 runs per cell instead of 9.
+- Corrected protocol (lr 0.01, select on the objective, score samples): frontier **20–71% lower** with 4 runs per cell instead of 9; hierarchy reruns show no overshoot (selected step within 2% of final).
 - Shaw et al. (2026): 870 bits from a compiled init vs 2.8M from random init. Here the gap closes by selection and step size.
 
 ## Preregistered comparisons
@@ -109,7 +111,7 @@ Same‑task warm start costs 0.85 of scratch, same‑language 0.95. Silhouettes 
 |---|---|
 | H1 cost orderings | task yes (recall far above translation); language no (English dearest) |
 | H2 cheap language | slots: equal; bits: task given language 1.3–7.8× language given task on recall |
-| H3 separability | partial on translation, not on recall |
+| H3 separability | partial on translation, not on recall; a shared centre saves no bits (1.5× independent) |
 | H4 task‑organised distance | direction yes, structure no, not significant (silhouette 0.004 vs −0.09) |
 | H5 depth split | language deviation read early and late, task centre early: opposite to H5 |
 | H6 input compressibility | one vector suffices with the task prefix (exploratory) |
@@ -117,6 +119,6 @@ Same‑task warm start costs 0.85 of scratch, same‑language 0.95. Silhouettes 
 ## Limitations and next steps
 
 - Two seeds; recall budget‑bound (3000 steps: $\hat D$ 0.043 to 0.032 and falling); continuation unmeasurable; distance matrix one seed.
-- Variational protocol corrected after preregistration; both reported. Hierarchical rates are upper bounds (old selection rule).
+- Variational protocol corrected after preregistration; both reported. Hierarchy rerun under it (language‑centred: ru so far); every corrected rate still falling at 1500 steps.
 - Research version, same code: scale axis 0.5B–7B, 20+ languages by resource level, per‑column mixture prior, charge $\log_2|k\text{-grid}|$ bits for $k$, step size in prior‑σ units.
 - Repo: `sirotenkogeorgii/prefix-programs`, branch `prefixlab`; `01_figures.ipynb` regenerates everything in under a minute.

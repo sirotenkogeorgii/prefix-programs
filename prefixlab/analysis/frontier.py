@@ -49,11 +49,55 @@ def scheme_comparison(flat_front: pd.DataFrame, hier_task: pd.DataFrame, hier_la
     f = flat_front[(flat_front.op == op) & flat_front.cell.isin(cells)]
     ht = hier_task[hier_task.op == op]
     hl = hier_lang[hier_lang.op == op]
+
+    def covered(t: pd.DataFrame) -> set[str]:
+        """Cells a hierarchy table covers: group 'task:X' + member 'y' -> 'X-y'; group 'lang:y' + member 'X' -> 'X-y'."""
+        out = set()
+        for r in t.itertuples():
+            kind, name = r.group.split(":", 1)
+            for col in t.columns:
+                if col.startswith("dev_") and pd.notna(getattr(r, col)):
+                    out.add(f"{name}-{col[4:]}" if kind == "task" else f"{col[4:]}-{name}")
+        return out
+
     return pd.DataFrame([
-        dict(scheme="task-centred hierarchy", bits=float(ht.total.sum()), complete=bool(ht.total.notna().all())),
-        dict(scheme="independent flat programs", bits=float(f.bits.sum()), complete=bool(f.bits.notna().all())),
-        dict(scheme="language-centred hierarchy", bits=float(hl.total.sum()), complete=bool(hl.total.notna().all())),
+        dict(scheme="task-centred hierarchy", bits=float(ht.total.sum()), complete=bool(ht.total.notna().all()) and covered(ht) >= set(cells)),
+        dict(scheme="independent flat programs", bits=float(f.bits.sum()), complete=bool(f.bits.notna().all()) and len(f) == len(set(cells))),
+        dict(scheme="language-centred hierarchy", bits=float(hl.total.sum()), complete=bool(hl.total.notna().all()) and covered(hl) >= set(cells)),
     ])
+
+
+def group_vs_independent(h: pd.DataFrame, totals: pd.DataFrame, flat_front: pd.DataFrame, ops) -> pd.DataFrame:
+    """Per (group, op): the hierarchy's cheapest total against the sum of the independent frontier over the same cells.
+    `h` gives the group -> cell membership, `totals` comes from hier_totals, `flat_front` from frontier (any protocol mix)."""
+    cells_of = h.groupby("group").cell.unique()
+    rows = []
+    for grp, cells in cells_of.items():
+        for op in ops:
+            t = totals[(totals.group == grp) & (totals.op == op)]
+            f = flat_front[(flat_front.op == op) & flat_front.cell.isin(cells)]
+            ind = float(f.bits.sum()) if len(f) == len(cells) and f.bits.notna().all() else np.nan
+            hb = float(t.total.iloc[0]) if len(t) else np.nan
+            rows.append(dict(group=grp, op=op, n_cells=len(cells), hier_bits=hb,
+                             hier_k=float(t.k.iloc[0]) if len(t) else np.nan, hier_beta=float(t.beta.iloc[0]) if len(t) else np.nan,
+                             independent_bits=ind, ratio=hb / ind if ind and not np.isnan(ind) else np.nan))
+    return pd.DataFrame(rows)
+
+
+def matched_hyperparameters(h: pd.DataFrame, flat: pd.DataFrame, dcol: str = "D_sampled", seed: int = 0) -> pd.DataFrame:
+    """Per (group, k, beta): hierarchy total against the sum of the independent runs at the same (k, beta, seed) over the
+    group's cells, with the worst member distortion of each. NaN when an independent run is missing."""
+    rows = []
+    for (grp, k, beta), g in h.groupby(["group", "k", "beta"]):
+        f = flat[(flat.k == k) & (flat.beta == beta) & (flat.seed == seed) & flat.cell.isin(g.cell)]
+        f = f.drop_duplicates("cell")
+        have = len(f) == len(g)
+        rows.append(dict(group=grp, k=int(k), beta=float(beta), n_cells=len(g),
+                         hier_bits=float(g.kl_centre_bits.iloc[0] + g.kl_dev_bits.sum()), hier_maxD=float(g[dcol].max()),
+                         independent_bits=float(f.kl_bits.sum()) if have else np.nan, independent_maxD=float(f[dcol].max()) if have else np.nan))
+    out = pd.DataFrame(rows)
+    out["ratio"] = out.hier_bits / out.independent_bits
+    return out
 
 
 def dev_trajectory(history: list[dict]) -> pd.DataFrame:
