@@ -135,6 +135,19 @@ def test_frontier_by_seed():
     assert b.loc[0.10, "bits_s0"] == 1000 and b.loc[0.10, "bits_s1"] == 1100
 
 
+def test_centre_only():
+    m = pd.DataFrame([
+        dict(cell="translation-ru", probe="hier_task_dev", layer=0, recipient_bits_per_token=2.0, donor_bits_per_token=1.5),
+        dict(cell="translation-ru", probe="hier_task_dev", layer=1, recipient_bits_per_token=2.0, donor_bits_per_token=1.5),
+        dict(cell="translation-ru", probe="hier_lang_dev", layer=0, recipient_bits_per_token=3.0, donor_bits_per_token=1.0),
+        dict(cell="translation-ru", probe="A", layer=0, recipient_bits_per_token=3.0, donor_bits_per_token=1.0),
+    ])
+    fl = pd.DataFrame([dict(cell="translation-ru", L_none=3.0, L_lora=1.0, L_bestA=1.2, L_floor=1.0)])
+    c = mechanism.centre_only(m, fl).set_index("centre")
+    assert len(c) == 2 and abs(c.loc["task centre", "D_centre_only"] - 0.5) < 1e-9 and abs(c.loc["task centre", "D_centre_plus_dev"] - 0.25) < 1e-9
+    assert abs(c.loc["language centre", "D_centre_only"] - 1.0) < 1e-9 and abs(c.loc["language centre", "D_centre_plus_dev"]) < 1e-9
+
+
 def test_distance_symmetrisation_groups_and_silhouette():
     cells = ["translation-ru", "translation-de", "recall-ru", "recall-de"]
     rows = []

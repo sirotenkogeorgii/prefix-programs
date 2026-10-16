@@ -54,3 +54,18 @@ def peak_blocks(m: pd.DataFrame) -> pd.DataFrame:
         else:
             rows.append(dict(cell=cell, probe=probe, peak_block=np.nan, effect=float(g.effect.iloc[0])))
     return pd.DataFrame(rows).pivot(index="cell", columns="probe", values="peak_block")
+
+
+def centre_only(m: pd.DataFrame, fl: pd.DataFrame) -> pd.DataFrame:
+    """Transfer of a shared centre without its deviation. For the `hier_*_dev` probes the recipient is the centre alone and
+    the donor is centre + deviation, so their distortions (on the cell's own floor scale) say how much of the member's
+    program the centre already carries."""
+    f = fl.set_index("cell")
+    rows = []
+    for probe, nesting in (("hier_task_dev", "task centre"), ("hier_lang_dev", "language centre")):
+        g = m[m.probe == probe].drop_duplicates("cell")
+        for r in g.itertuples():
+            lo, hi = f.loc[r.cell, "L_floor"], f.loc[r.cell, "L_none"]
+            rows.append(dict(cell=r.cell, centre=nesting, D_centre_only=(r.recipient_bits_per_token - lo) / (hi - lo),
+                             D_centre_plus_dev=(r.donor_bits_per_token - lo) / (hi - lo)))
+    return pd.DataFrame(rows)

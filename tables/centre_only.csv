@@ -1,0 +1,20 @@
+cell,centre,D_centre_only,D_centre_plus_dev,protocol
+translation-ru,task centre,0.04988788257610172,0.04700656343435419,prereg
+translation-de,task centre,0.4082685011967713,0.10898503069119013,prereg
+recall-ru,task centre,0.4205840406008485,0.0477472454219942,prereg
+recall-de,task centre,0.22848824974776888,0.17164312134001883,prereg
+recall-en,task centre,1.0065142083640457,0.13432068619943385,prereg
+continuation-ru,task centre,0.1168982560640175,0.2079828288987459,prereg
+continuation-de,task centre,-0.2780476331996646,-0.2684304682192195,prereg
+continuation-en,task centre,0.6232222601295813,0.5564764964616483,prereg
+translation-ru,language centre,0.16812232521324552,0.042841999917663375,prereg
+translation-de,language centre,0.17809481875929903,0.1130389580075889,prereg
+recall-ru,language centre,0.7793213636971938,0.06123143013362075,prereg
+recall-de,language centre,0.7142322874547165,0.1896232405419062,prereg
+recall-en,language centre,0.6886171662647518,0.17638818221639188,prereg
+continuation-ru,language centre,-0.009249669162789083,0.15582063260283074,prereg
+continuation-de,language centre,-0.14967984675595844,-0.2487338102865193,prereg
+continuation-en,language centre,0.595841636644856,0.980049174594124,prereg
+translation-ru,task centre,0.7042951018803282,0.21807212372971402,corrected
+translation-de,task centre,0.23239993764650546,0.5224164758480272,corrected
+translation-ru,language centre,0.08849221591039615,0.0924470255000418,corrected
