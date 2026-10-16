@@ -23,11 +23,17 @@ def random_prefix(E: torch.Tensor, k: int, seed: int) -> torch.Tensor:
     return SoftPrefix.from_vocab(E, k, seed + RECIPIENT_SEED_OFFSET).weight.detach()
 
 
-def hier_parts(ckpt_path, member: str) -> tuple[torch.Tensor, torch.Tensor]:
-    """(centre, centre + deviation[member]) posterior means from a HierarchicalPrefix checkpoint."""
+def hier_parts(ckpt_path, member: str, sample: bool = False, seed: int = 0) -> tuple[torch.Tensor, torch.Tensor]:
+    """(centre, centre + deviation[member]) from a HierarchicalPrefix checkpoint: posterior means, or one posterior sample
+    per part drawn with a fixed seed. The sample is the coded object; under the corrected protocol the posterior is as wide
+    as the prior and the mean is not a program the model was trained on."""
     state = torch.load(ckpt_path, map_location="cpu")
-    centre = state["centre_mu"]
-    return centre, centre + state[f"dev_mu.{member}"]
+    centre, dev = state["centre_mu"], state[f"dev_mu.{member}"]
+    if sample:
+        g = torch.Generator().manual_seed(seed)
+        centre = centre + state["centre_log_sigma"].exp() * torch.randn(centre.shape, generator=g)
+        dev = dev + state[f"dev_log_sigma.{member}"].exp() * torch.randn(dev.shape, generator=g)
+    return centre, centre + dev
 
 
 def run_mechanism(model, tok, cell: Cell, examples: list, probes: dict, k: int, seed: int, cond: str,

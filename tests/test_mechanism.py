@@ -6,7 +6,7 @@ from prefixlab.cli_hier import main as hier_main
 from prefixlab.cli_mechanism import main as mechanism_main
 from prefixlab.cli_sweep import main as sweep_main
 from prefixlab.data.formats import Cond, build_example
-from prefixlab.mechanism import run_mechanism
+from prefixlab.mechanism import hier_parts, run_mechanism
 from prefixlab.prefix import SoftPrefix
 from prefixlab.results import ResultsTable
 from prefixlab.tasks import Cell
@@ -49,3 +49,17 @@ def test_cli_mechanism_builds_probes_from_sweep_and_hier_tables(tok, tiny_model,
     assert (df["cell"] == "translation-ru").all()
     mechanism_main(argv, model=tiny_model, tok=tok)
     assert len(pd.read_csv(tmp_path / "mechanism.csv")) == 3 * L
+
+
+def test_hier_parts_mean_and_sample(tmp_path):
+    state = {"centre_mu": torch.zeros(2, 3), "centre_log_sigma": torch.full((2, 3), -1.0),
+             "dev_mu.ru": torch.ones(2, 3), "dev_log_sigma.ru": torch.full((2, 3), -1.0)}
+    f = tmp_path / "h.pt"; torch.save(state, f)
+    centre, member = hier_parts(f, "ru")
+    assert torch.equal(centre, torch.zeros(2, 3)) and torch.equal(member, torch.ones(2, 3))
+    c1, m1 = hier_parts(f, "ru", sample=True, seed=0)
+    c2, m2 = hier_parts(f, "ru", sample=True, seed=0)
+    c3, _ = hier_parts(f, "ru", sample=True, seed=1)
+    assert torch.equal(c1, c2) and torch.equal(m1, m2) and not torch.equal(c1, c3)
+    assert not torch.equal(c1, centre) and (c1.abs() < 2.0).all()   # sigma = e^-1, so draws stay within a few sigma
+    assert torch.allclose(m1 - c1 - 1.0, (m1 - c1 - 1.0)) and not torch.equal(m1 - c1, torch.ones(2, 3))
