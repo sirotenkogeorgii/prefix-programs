@@ -1,0 +1,9 @@
+cell,k_none,k_lang,k_task,dk_lang,dk_task
+continuation-de,2,1,2,1,0
+continuation-en,2,1,1,1,1
+continuation-ru,2,1,1,1,1
+recall-de,4,4,4,0,0
+recall-en,16,8,8,8,8
+recall-ru,2,1,1,1,1
+translation-de,1,1,1,0,0
+translation-ru,1,1,1,0,0

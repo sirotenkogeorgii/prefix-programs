@@ -1,0 +1,17 @@
+group,member,cell,centre,deviation,D
+task:continuation,ru,continuation-ru,2089,443,0.09305395972348211
+task:continuation,de,continuation-de,2089,560,0.11983830941106892
+task:continuation,en,continuation-en,2089,476,0.07380723840998833
+task:recall,ru,recall-ru,16531,3318,0.08452714447119367
+task:recall,de,recall-de,16531,4030,0.1669484054454624
+task:recall,en,recall-en,16531,3343,0.24226674844172785
+task:translation,ru,translation-ru,1586,485,0.045030648050763025
+task:translation,de,translation-de,1586,662,0.05249780994553
+lang:de,translation,translation-de,1413,438,0.09085949549638035
+lang:de,recall,recall-de,1413,5320,0.20017228941907805
+lang:de,continuation,continuation-de,1413,112,0.23898085538471864
+lang:en,recall,recall-en,8329,26157,0.24948001613800672
+lang:en,continuation,continuation-en,8329,741,0.17141349269245088
+lang:ru,translation,translation-ru,2954,632,0.03945475813559187
+lang:ru,recall,recall-ru,2954,7204,0.09677544059970285
+lang:ru,continuation,continuation-ru,2954,176,0.16060367754206686
