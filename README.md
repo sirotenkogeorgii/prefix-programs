@@ -40,6 +40,7 @@ python scripts/run_sweep.py --model Qwen/Qwen2.5-1.5B --tasks translation,recall
 python -m pytest
 # figures and tables from the committed results, no GPU:
 (cd notebooks && jupyter nbconvert --to notebook --execute --inplace 01_figures.ipynb)
+python scripts/draw_sampling_figure.py   # schematic of the two units and the draw schedule (figures/sampling.png)
 # report and slides:
 (cd report && pandoc report.md -o report.pdf --pdf-engine=xelatex --resource-path=.:..)
 (cd slides && pandoc slides.md -t beamer -o slides.pdf --pdf-engine=xelatex --resource-path=.:.. -V sansfont="Helvetica Neue")
