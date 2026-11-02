@@ -295,7 +295,7 @@ Code, result tables, per-example bits, training histories and prefix checkpoints
 
 \appendix
 \section{Preregistered comparisons}
-\begin{table}[H]
+\begin{table}[htbp]
 \centering\small
 \begin{tabular}{p{0.06\textwidth}p{0.86\textwidth}}
 \toprule
@@ -311,13 +311,13 @@ H6 & one vector suffices with the task prefix; per-token variant not computed; n
 \end{table}
 
 \section{Hierarchy: detailed comparisons}\label{app:hier}
-\begin{figure}[H]
+\begin{figure}[htbp]
 \centering\includegraphics[width=0.85\textwidth]{hier_bars_corrected.png}
 \caption{Code length at $\Dh\le0.25$ under the two nestings, corrected protocol: the centre is paid once per group, each deviation once per member; the cheapest run whose members all reach the level.}
 \label{fig:hier}
 \end{figure}
 
-\begin{table}[H]
+\begin{table}[htbp]
 \centering\small
 \begin{tabular}{llr}
 \toprule
@@ -335,7 +335,7 @@ eight independent programs & corrected & 17,600 \\
 \label{tab:codes}
 \end{table}
 
-\begin{table}[H]
+\begin{table}[htbp]
 \centering\small
 \begin{tabular}{lrrr}
 \toprule
@@ -355,7 +355,7 @@ $(k,\beta)$ & task-centred, bits (worst $\Dh$) & language-centred, bits (worst $
 With the $k=4$ task prefix, one per-example vector replaces the input to within 10\% of the real-input loss on every cell but \cell{translation-ru}, which needs two; without the prefix, translation and continuation need two. There is no rate term on the vectors, so this is a slot count. On recall the bare model scores the target better with no input (3.1 bits per token) than with the real query (7.2), consistent with confident wrong answers once a subject is named.
 
 \section{Zero-rate baselines}\label{app:baseline}
-\begin{table}[H]
+\begin{table}[htbp]
 \centering\small
 \begin{tabular}{lrrrr}
 \toprule
@@ -375,7 +375,7 @@ recall-en & 1.07 (0.05) & 1.12 (0.06) & 1.04 (0.04) & 1.12 (0.12) \\
 
 \section{Run inventory and replication}\label{app:inventory}
 273 Design~A, baseline and floor rows (6 values of $k$, 2 seeds, 3 conditionings, 8 cells); 72 flat and 40 flat2 rows (two seeds); 144 hierarchical rows from 54 joint runs under the preregistered rule and 64 from 24 under the corrected protocol; 72 composition rows from 10 joint runs; 72 distance rows; 32 regime~2 rows; 1,120 mechanism rows, plus 1,120 mean-based mechanism rows kept as a caveated check; one 3000-step recall run; 16 rows from 8 joint runs of the language groups retrained on their measurable members; 32 zero-rate baseline rows. Training: 1500 steps, batch 16, AdamW, learning rate 0.05 (0.01 for flat2), 50 warm-up steps, cosine decay, gradient clip 1.0, development evaluation every 100 steps. LoRA floors: rank 16 on the attention projections, learning rate $2\times10^{-4}$, 1500 steps. Bootstrap intervals over test examples for the gain of the $\Dh\le0.10$ frontier runs over the no-prefix model, evaluated at the posterior mean (per-example bits are stored for the mean only): $0.52\pm0.01$ bits per token on \cell{translation-ru}, $0.50\pm0.03$ on \cell{translation-de} and $5.69\pm0.07$ on \cell{recall-ru}.
-\begin{table}[H]
+\begin{table}[htbp]
 \centering\small
 \begin{tabular}{lrrr}
 \toprule
