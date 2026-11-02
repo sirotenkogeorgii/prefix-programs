@@ -244,4 +244,4 @@ Table: Replication of the corrected-protocol frontier with a second seed; each s
 
 The preregistered protocol's frontier at $\hat D \le 0.25$, for comparison with Table \ref{tab:bits}: translation-de 1,194 bits, translation-ru 699, recall-ru 3,101, recall-de 4,168, recall-en 24,686. Bootstrap intervals over test examples for the gain of the frontier programs over the no-prefix model, evaluated at the posterior mean (per-example losses are stored for the mean only): $0.52 \pm 0.01$ bits per token on translation-ru, $0.50 \pm 0.03$ on translation-de and $5.69 \pm 0.07$ on recall-ru.
 
-The code, result tables, per-example losses, training histories and prefix checkpoints accompany this report; a single notebook regenerates every figure and table from the tables in under a minute.
+The code, result tables, per-example losses, training histories and prefix checkpoints are at <https://github.com/sirotenkogeorgii/prefix-programs>; a single notebook there regenerates every figure and table from the tables in under a minute.

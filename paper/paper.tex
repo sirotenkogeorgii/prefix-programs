@@ -295,7 +295,7 @@ The mechanism experiments replace activations at the prefix positions in the sel
 Counting tokens misreads a prompt's complexity; counting bits under a bits-back code does not. At that currency we find translation programs of about 500 bits and Russian factual-recall programs of about 2,400 bits at the specified distortion thresholds, both upper bounds on the shortest achievable codes. Those bits are not organised as a cheap modifier on a shared core: neither nesting shows a consistent compression advantage across the tested configurations, and a centre plus deviations gives no consistent saving over independent programs. The asymmetry is mechanistic: recall programs are language-specific, do not compose, and are only partly recovered from the first block, whereas a translation program's effect is recovered almost entirely from the first block alone. The measurement is only as good as the optimiser, and the largest single effect in this study is the one obtained by selecting checkpoints on the objective rather than on distortion. Natural extensions are more languages stratified by resource level, larger models, a charge for the choice of $k$, the per-column mixture prior of \citet{shaw2026bridging} as a second rate, a separate $\beta$ for each member of a hierarchy, and more seeds.
 
 \paragraph{Reproducibility}
-The code, result tables, per-example losses, training histories and prefix checkpoints accompany this report; a single notebook regenerates every figure and table from the tables.
+The code, result tables, per-example losses, training histories and prefix checkpoints are at \url{https://github.com/sirotenkogeorgii/prefix-programs}; a single notebook there regenerates every figure and table from the tables.
 
 
 \bibliographystyle{plainnat}
