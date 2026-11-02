@@ -1,117 +1,93 @@
-"""One slot of a variational prefix drawn like a VAE latent; writes figures/sampling.png.
+"""The sampling step of a variational prefix, for one coordinate of one slot; writes figures/sampling.png.
 
-Labels follow the code: the draw z = mu + sigma * eps is prefixlab/prefix.py (VariationalPrefix.forward), the rate is
-kl_bits() there, the objective is the loss in prefixlab/train.py, and the prior is gaussian_prior_from_embeddings.
+Top: a standard-normal draw eps. Bottom: the same draw mapped to z = mu + sigma * eps under the slot's posterior, with
+the embedding prior behind it. mu, sigma, m0, s0 are read from a saved corrected-protocol checkpoint; the coordinate
+shown is the one with the largest KL in slot 1 of that run. The draw rule is prefixlab/prefix.py (VariationalPrefix.forward).
 """
 from __future__ import annotations
 
+import math
 from pathlib import Path
 
 import matplotlib
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 import numpy as np
-from matplotlib.patches import Circle, FancyBboxPatch
+import torch
+from matplotlib.patches import ConnectionPatch
 
-DRAW, DRAW_SOFT = "#1d6d8a", "#d9ebf2"
-RATE, RATE_SOFT = "#b0540c", "#f6e4d3"
-INK, MUTED, SOFT = "#1c221f", "#5f6a64", "#c7cec8"
-
-
-def box(ax, x, y, w, h, lines, *, fc="white", ec=INK, ls="-", sizes=None, colors=None, weights=None, lw=0.8, pad=0.5):
-    ax.add_patch(FancyBboxPatch((x, y), w, h, boxstyle=f"round,pad=0,rounding_size={pad}", fc=fc, ec=ec, lw=lw, ls=ls))
-    n = len(lines)
-    sizes = sizes or [7] * n
-    colors = colors or [INK] * n
-    weights = weights or ["normal"] * n
-    step = h / (n + 1)
-    for i, t in enumerate(lines):
-        ax.text(x + w / 2, y + h - step * (i + 1), t, ha="center", va="center", fontsize=sizes[i], color=colors[i],
-                fontweight=weights[i])
+TEAL, GREY, INK, MUTED = "#1d6d8a", "#8a938d", "#1c221f", "#5f6a64"
+CKPT = "results_sync/checkpoints/flat2_translation-de_none_k2_s0_b3.pt"
 
 
-def arrow(ax, p, q, color=INK, ls: str | tuple = "-", lw=0.9, style="-|>"):
-    ax.annotate("", xy=q, xytext=p, arrowprops=dict(arrowstyle=style, color=color, lw=lw, shrinkA=0, shrinkB=0,
-                                                       mutation_scale=7, linestyle=ls))
+def load_coordinate(path: Path):
+    sd = torch.load(path, map_location="cpu")
+    sd = sd.get("state_dict", sd)
+    mu, ls = sd["mu"][0].double(), sd["log_sigma"][0].double()
+    m0, ls0 = sd["prior_mu"].double(), sd["prior_log_sigma"].double()
+    kl = (ls0 - ls) + (torch.exp(2 * ls) + (mu - m0) ** 2) / (2 * torch.exp(2 * ls0)) - 0.5
+    j = int(kl.argmax())
+    return j, float(mu[j]), float(torch.exp(ls[j])), float(m0[j]), float(torch.exp(ls0[j])), float(kl[j] / math.log(2))
 
 
-def node(ax, x, y, sym, r=1.8, color=DRAW):
-    ax.add_patch(Circle((x, y), r, fc="white", ec=color, lw=0.9))
-    ax.text(x, y, sym, ha="center", va="center", fontsize=8, color=color)
+def pdf(x, m, s):
+    return np.exp(-0.5 * ((x - m) / s) ** 2) / (s * math.sqrt(2 * math.pi))
 
 
-def bell(ax, x0, y0, w, h, color, shift=0.0, width=1.0):
-    t = np.linspace(-2.6, 2.6, 80)
-    ax.plot(x0 + (t + shift) / 5.2 * w + w / 2, y0 + h * np.exp(-0.5 * (t / width) ** 2), color=color, lw=0.9)
-    ax.plot([x0, x0 + w], [y0, y0], color=SOFT, lw=0.6)
+def main(out: Path, ckpt: Path):
+    j, mu, sigma, m0, s0, kl_bits = load_coordinate(ckpt)
+    rng = np.random.default_rng(0)
+    eps = np.sort(rng.standard_normal(6))
+    z = mu + sigma * eps
 
+    fig, (top, bot) = plt.subplots(2, 1, figsize=(6.4, 3.4), gridspec_kw=dict(hspace=0.9))
+    fig.subplots_adjust(left=0.06, right=0.98, top=0.9, bottom=0.17)
+    for ax in (top, bot):
+        for s in ("top", "right", "left"):
+            ax.spines[s].set_visible(False)
+        ax.set_yticks([])
+        ax.tick_params(axis="x", labelsize=7, colors=MUTED, length=2.5)
+        ax.spines["bottom"].set_color(GREY)
 
-def main(out: Path):
-    fig, ax = plt.subplots(figsize=(7.2, 3.5))
-    fig.subplots_adjust(left=0.005, right=0.995, top=0.995, bottom=0.005)
-    ax.set_xlim(0, 100); ax.set_ylim(-6, 50); ax.axis("off")
+    # top: the noise
+    x = np.linspace(-3.6, 3.6, 400)
+    top.plot(x, pdf(x, 0, 1), color=INK, lw=1.1)
+    top.set_xlim(-3.6, 3.6); top.set_ylim(0, 0.5)
+    top.set_xticks([-3, -2, -1, 0, 1, 2, 3])
+    top.plot(eps, np.zeros_like(eps), "|", color=TEAL, ms=9, mew=1.3)
+    top.text(-3.5, 0.44, "$\\varepsilon \\sim \\mathcal{N}(0, 1)$", fontsize=9, va="top")
+    top.text(-3.5, 0.3, "fresh at every forward call", fontsize=7, color=MUTED, va="top")
 
-    # prior
-    box(ax, 2, 40, 40, 8, [""], fc="white", ec=INK)
-    bell(ax, 4, 41.5, 7, 4.5, INK)
-    ax.text(25, 46, "prior $\\pi_0 = \\mathcal{N}(m_0,\\,\\mathrm{diag}\\,s_0^2)$", ha="center", va="center", fontsize=7)
-    ax.text(25, 42.3, "fitted to the token-embedding matrix", ha="center", va="center", fontsize=5.8, color=MUTED)
+    # bottom: the posterior, the prior behind it, and the mapped draws
+    lo = min(m0, mu) - 3.4 * max(s0, sigma); hi = max(m0, mu) + 3.4 * max(s0, sigma)
+    xz = np.linspace(lo, hi, 500)
+    bot.plot(xz, pdf(xz, m0, s0), color=GREY, lw=1.0, ls=(0, (4, 3)), zorder=3)
+    bot.plot(xz, pdf(xz, mu, sigma), color=TEAL, lw=1.3, zorder=4)
+    bot.set_xlim(lo, hi); ymax = pdf(mu, mu, sigma) * 1.22; bot.set_ylim(0, ymax)
+    bot.plot(z, np.zeros_like(z), "|", color=TEAL, ms=9, mew=1.3, zorder=5)
+    bot.axvline(mu, 0, pdf(mu, mu, sigma) / ymax, color=TEAL, lw=0.7, ls=(0, (1.5, 2)))
+    bot.text(mu, pdf(mu, mu, sigma) * 1.04, "$\\mu$", ha="center", va="bottom", fontsize=9, color=TEAL)
+    h = pdf(mu + sigma, mu, sigma)
+    bot.annotate("", xy=(mu + sigma, h), xytext=(mu, h), arrowprops=dict(arrowstyle="<->", color=TEAL, lw=0.7, shrinkA=0, shrinkB=0))
+    bot.text(mu + sigma / 2, h * 1.06, "$\\sigma$", ha="center", va="bottom", fontsize=8, color=TEAL)
+    bot.text(m0, pdf(m0, m0, s0) * 1.04, "$\\pi_0$", ha="center", va="bottom", fontsize=9, color=GREY)
+    side = "left" if mu > m0 else "right"
+    bot.text(lo if side == "left" else hi, ymax * 0.98,
+             "$z = \\mu + \\sigma\\,\\varepsilon \;\\sim\; q = \\mathcal{N}(\\mu, \\sigma^2)$", fontsize=9, va="top", ha=side, color=TEAL)
+    bot.text(lo if side == "left" else hi, ymax * 0.70, "prior $\\pi_0 = \\mathcal{N}(m_0, s_0^2)$, dashed", fontsize=7, va="top",
+             ha=side, color=MUTED)
+    bot.set_xlabel(f"value at coordinate {j + 1} of 1,536 in slot 1 (embedding units)", fontsize=7, color=MUTED, labelpad=3)
 
-    # rate: KL between prior and posterior
-    arrow(ax, (17, 40), (17, 34.4), color=RATE, ls=(0, (3, 2)), style="<|-|>")
-    ax.text(19, 37.2, "rate $= \\mathrm{KL}(q\\,\\|\\,\\pi_0)\\,/\\ln 2$ bits", ha="left", va="center", fontsize=7, color=RATE,
-            fontweight="bold")
-
-    # posterior group (the latent, as in a VAE)
-    ax.add_patch(FancyBboxPatch((2, 2), 44, 32, boxstyle="round,pad=0,rounding_size=0.8", fc=DRAW_SOFT, ec=DRAW, lw=0.9,
-                                ls=(0, (4, 2.5)), alpha=0.55))
-    ax.text(4.5, 31, "one slot: posterior $q = \\mathcal{N}(\\mu,\\,\\mathrm{diag}\\,\\sigma^2)$ over $\\mathbb{R}^{1536}$",
-            ha="left", va="center", fontsize=7, fontweight="bold")
-    bell(ax, 38.5, 27.5, 7, 4, DRAW, shift=0.6, width=0.8)
-    box(ax, 6, 20, 9, 6, ["$\\mu$"], sizes=[9])
-    box(ax, 6, 8, 9, 6, ["$\\sigma$"], sizes=[9])
-    ax.text(10.5, 17.6, "trained", ha="center", va="center", fontsize=5.8, color=MUTED)
-    ax.text(10.5, 5.6, "trained", ha="center", va="center", fontsize=5.8, color=MUTED)
-    node(ax, 24, 11, "×")
-    node(ax, 24, 23, "+")
-    arrow(ax, (15, 11), (22.2, 11), color=DRAW)
-    arrow(ax, (15, 23), (22.2, 23), color=DRAW)
-    node(ax, 34, 11, "$\\varepsilon$", color=INK)
-    ax.text(34, 5.6, "$\\varepsilon \\sim \\mathcal{N}(0, I)$, fresh each call", ha="center", va="center", fontsize=5.8,
-            color=MUTED)
-    arrow(ax, (32.2, 11), (25.8, 11), color=INK)
-    arrow(ax, (24, 12.8), (24, 21.2), color=DRAW)
-    ax.text(25.3, 17, "$\\sigma \\odot \\varepsilon$", ha="left", va="center", fontsize=6.5, color=DRAW)
-    arrow(ax, (25.8, 23), (30, 23), color=DRAW)
-    box(ax, 30, 19.5, 8, 7, ["$z$"], fc="white", ec=DRAW, sizes=[9])
-    ax.text(34, 16.6, "$z = \\mu + \\sigma \\odot \\varepsilon$", ha="center", va="center", fontsize=6.5, color=DRAW)
-    ax.text(24, -0.5, "the latent of a VAE, without an encoder: $\\mu$ and $\\sigma$ are the free parameters",
-            ha="center", va="center", fontsize=5.8, color=MUTED)
-
-    # decoder: the frozen model
-    arrow(ax, (38, 23), (52, 23), color=DRAW)
-    ax.text(45, 25, "prefix", ha="center", va="center", fontsize=5.8, color=MUTED)
-    box(ax, 52, 15, 26, 16, ["frozen Qwen2.5-1.5B", "reads $z$ as one extra token", "before the input"],
-        sizes=[7.5, 6, 6], colors=[INK, MUTED, MUTED], weights=["bold", "normal", "normal"])
-    box(ax, 55, 2, 20, 6, ["input tokens"], sizes=[6.5])
-    arrow(ax, (65, 8), (65, 15))
-    ax.text(65, 33.5, "the decoder, not trained", ha="center", va="center", fontsize=5.8, color=MUTED)
-
-    # distortion
-    arrow(ax, (78, 23), (84, 23), color=DRAW)
-    box(ax, 84, 15, 14, 16, ["distortion", "$L$ = bits per", "target token"], fc=DRAW_SOFT, ec=DRAW,
-        sizes=[7, 6.2, 6.2], colors=[DRAW, INK, INK], weights=["bold", "normal", "normal"])
-    ax.text(91, 33.5, "reconstruction term", ha="center", va="center", fontsize=5.8, color=MUTED)
-    ax.text(91, 11.5, "scored on draws $z$,", ha="center", va="center", fontsize=5.8, color=MUTED)
-    ax.text(91, 9, "never on $\\mu$", ha="center", va="center", fontsize=5.8, color=MUTED)
-
-    # objective
-    ax.text(50, -4.2, "objective $= L + \\beta \\cdot \\mathrm{KL}\\,/\\,N_{\\mathrm{train\\ tokens}}$, one draw per step;"
-            "  a $k$-slot prefix repeats the slot $k$ times and sums the rates", ha="center", va="center", fontsize=6.3)
+    # the mapping of each draw
+    for e, zz in zip(eps, z):
+        bot.add_artist(ConnectionPatch(xyA=(e, 0), coordsA=top.transData, xyB=(zz, 0), coordsB=bot.transData,
+                                       color=TEAL, lw=0.5, alpha=0.45, clip_on=False, zorder=1))
+    fig.text(0.985, 0.955, f"$\\mu = {mu:.3f}$, $\\sigma = {sigma:.4f}$, $m_0 = {m0:.3f}$, $s_0 = {s0:.4f}$;  "
+             f"KL for this coordinate: {kl_bits:.1f} bits", fontsize=6.5, color=MUTED, ha="right", va="center")
     fig.savefig(out, dpi=200)
-    print("wrote", out)
+    print("wrote", out, "coordinate", j, f"mu={mu:.4f} sigma={sigma:.4f} m0={m0:.4f} s0={s0:.4f} kl_bits={kl_bits:.2f}")
 
 
 if __name__ == "__main__":
     root = Path(__file__).resolve().parents[1]
-    main(root / "figures" / "sampling.png")
+    main(root / "figures" / "sampling.png", root / CKPT)
