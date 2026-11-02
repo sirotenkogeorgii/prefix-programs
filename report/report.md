@@ -82,25 +82,6 @@ Four further measurements ask whether the program has parts.
 
 **Mechanism.** For a trained prefix, the hidden states at the prefix positions are copied into the attention input of one transformer block of a run with a random prefix. The share of the trained prefix's effect that this single block recovers says how much of the program is read there.
 
-## Glossary
-
-| term | meaning |
-|--------|--------------------------------------|
-| cell | one task–language pair, e.g. recall‑ru |
-| slot | one trained vector of size 1,536 placed before the input |
-| prefix, program | the $k$ slots together |
-| $L$ | loss on the target, bits per target token |
-| no‑prefix loss, floor | $L$ with no prefix; the best $L$ reached by LoRA or by any prefix |
-| $\hat D$ | distortion: where $L$ falls between no‑prefix (1) and floor (0) |
-| operating point | a distortion threshold, 0.25 or 0.10, at which costs are compared |
-| $k^\ast$ | smallest number of slots reaching an operating point |
-| bits | KL from the embedding prior to the slot's distribution, summed over slots |
-| prior $\pi_0$ | Gaussian fitted to the token‑embedding matrix; the reference for bits |
-| $\beta$ | weight on bits during training; swept to trace cost against quality |
-| frontier | fewest bits among runs under an operating point |
-| centre, deviation | shared part and per‑member part of a group's prefix |
-| nesting | grouping by task (language deviations) or by language (task deviations) |
-
 # Setup
 
 **Model and data.** Qwen2.5‑1.5B base, frozen, in bfloat16 on one A100. FLORES+ dev sentences for training and model selection, devtest for every reported number; mLAMA facts split by item so that no fact appears in both training and test. Test sets have 1,012 sentences per translation cell and 4,451–6,496 facts per recall cell.
