@@ -65,7 +65,7 @@ Centre paid once per group, each deviation once per member; cheapest run with ev
 
 - Prereg. rule: task‑centred wins by 37%. Corrected: the nestings tie within 25% at matched (k, β); language‑centred never gets recall‑en under 0.25.
 - A shared centre **saves no bits**: 1.87× the independent programs on the five measurable cells; parity on translation (1,029 vs 978), 1.9× on recall (24,972 vs 12,917).
-- At matched (k, β) a hierarchy costs 0.94–1.5× the flat2 sum.
+- At matched (k, β) a hierarchy costs 0.94–1.5× the sum of the corrected flat runs.
 
 ## What a language costs, what a task costs
 

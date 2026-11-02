@@ -266,7 +266,7 @@ Inside a hierarchical prefix the parts differ by depth profile rather than by pe
 \section{The objective is right, the search is hard}\label{sec:opt}
 \begin{figure}[t]
 \centering\includegraphics[width=0.85\textwidth]{trajectories.png}
-\caption{Centre KL (hierarchical runs) or total KL (flat run) and development loss against step for two preregistered-protocol hierarchical runs and two corrected-protocol runs (flat2 and hierarchical).}
+\caption{Centre KL (hierarchical runs) or total KL (flat run) and development loss against step for two preregistered-protocol hierarchical runs and two corrected-protocol runs (flat and hierarchical).}
 \label{fig:traj}
 \end{figure}
 The saved histories of the 27 task-grouped hierarchical runs under the preregistered protocol show three failures (Figure~\ref{fig:traj}). With learning rate 0.05, two prior standard deviations per Adam step, the centre KL overshoots early, peaking at a median of 26,000 bits at $k=2$ and 144,000 at $k=8$ before the cosine schedule lets the KL term pull the means back. The checkpoint rule, which selects on the distortion of the posterior mean, then picks a step where the rate is above its final value, by a median factor of 1.1--1.2 and up to 20. And the posterior mean is not the coded object: on translation at $\beta=3$ the mean scores $\Dh$ 0.35--0.56 in three of four runs while samples score 0.06--0.17, because the model was trained on samples.
