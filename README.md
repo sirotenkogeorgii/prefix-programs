@@ -4,6 +4,8 @@ Soft prefixes as programs for a frozen multilingual language model: how many bit
 does it take to tell the model which language to produce in and which task to perform, and are the two
 separable? See the report for the design and hypotheses.
 
+**Report:** [`paper/paper.pdf`](paper/paper.pdf) (paper format, 13 pages). Longer seminar version: [`report/report.pdf`](report/report.pdf); slides: [`slides/slides.pdf`](slides/slides.pdf). Every figure and table in them is regenerated from `results_sync/` by `notebooks/01_figures.ipynb`.
+
 ## Layout
 
 - `prefixlab/` — scoring (teacher-forced bits), soft / variational / hierarchical / composed prefixes, prompt tuning,
