@@ -38,12 +38,12 @@ This project measures the description length of the programs for multilingual ta
 \begin{itemize}
     \item How is $K_M(\rho,l)$ split between telling the model which task to perform and which language to produce?
     \item Are the two parts separable, so that a task part and a language part can be assembled?
-    \item How far apart are the programs for different cells, and do they cluster by task or by language?
+    \item How far apart are the programs for different language--task pairs, and do they cluster by task or by language?
     \item Where in depth does the model read each part?
     \item Is the measurement itself trustworthy: does gradient descent find the short programs that the objective prefers?
 \end{itemize}
 
-Our contributions are a measurement design and five results. The design (Section~\ref{sec:framework}) fixes two units, slots and bits, one normalised distortion, two preregistered operating points, and a hierarchical variational prefix whose centre and deviations put task bits and language bits in the same currency. The results (Sections~\ref{sec:results}--\ref{sec:opt}) are the four findings of the abstract plus a negative one: the information-distance matrix over cells has no cluster structure at one seed. Every number is recomputed from released tables by a notebook that runs in under a minute.
+Our contributions are a measurement design and five results. The design (Section~\ref{sec:framework}) fixes two units, slots and bits, one normalised distortion, two distortion thresholds chosen in advance from a development pilot, and a hierarchical variational prefix whose centre and deviations put task bits and language bits in the same currency. The results (Sections~\ref{sec:results}--\ref{sec:opt}) are the four findings of the abstract plus a negative one: the information-distance matrix over language--task pairs has no cluster structure at one seed. Every number is recomputed from released tables by a notebook that runs in under a minute.
 
 \section{Related work}
 \paragraph{Description length of models and probes}
@@ -156,7 +156,7 @@ The preregistered protocol (\emph{flat}) used learning rate 0.05, the checkpoint
 \subsection{Slots are not a description length}\label{sec:slots}
 \begin{figure}[t]
 \centering\includegraphics[width=\textwidth]{curves.png}
-\caption{Normalised distortion against the number of slots, Design~A, seed means with the seed range shaded. Dashed lines mark the operating points; line style is the conditioning format. Continuation (right) is noise.}
+\caption{Normalised distortion against the number of slots, Design~A, seed means with the seed range shaded. Dashed lines mark the thresholds; line style is the conditioning format. Continuation (right) is noise.}
 \label{fig:curves}
 \end{figure}
 
@@ -203,7 +203,7 @@ recall-de & --- & 3,343 & 0.143 & 4,168 \\
 recall-en & --- & 7,155 & 0.226 & 24,686 \\
 \bottomrule
 \end{tabular}
-\caption{Headline frontier: the smallest code length in bits among runs reaching each operating point, under the corrected protocol, with the best distortion any corrected run reaches and the preregistered protocol's value at 0.25.}
+\caption{Headline frontier: the smallest code length in bits among runs reaching each threshold, under the corrected protocol, with the best distortion any corrected run reaches and the preregistered protocol's value at 0.25.}
 \label{tab:frontier}
 \end{table}
 
