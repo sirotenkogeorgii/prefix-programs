@@ -95,7 +95,7 @@ Same‑task warm start costs 0.85 of scratch, same‑language 0.95. Silhouettes 
 ![](../figures/mechanism.png){width=100%}
 
 - Patching the prefix positions into **block 0 alone** recovers 70–94% of the effect for translation and continuation, 36–58% for recall (secondary peak at block 17).
-- A translation program is copied into the token stream in the first block; a recall program is read in several places, deep in the network.
+- Patching block 0 alone recovers 70–87% of a translation program's effect but only 36–58% of a recall program's; the rest of recall's effect is recovered at blocks 10–11 and 17.
 - H5: every probe peaks at block 0, but the **language deviation is read again at blocks 16–17** (late mass 1.9 vs early 1.6 on recall) while the task centre is not (0.5 vs 1.0): a split by part, opposite to H5's direction.
 
 ## Result 6: the objective is right, the search is hard
