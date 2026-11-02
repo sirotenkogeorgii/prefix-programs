@@ -49,10 +49,10 @@ Our contributions are a measurement design and five results. The design (Section
 \citet{hinton1993keeping} introduced the variational (bits-back) code for network weights; \citet{blier2018description} compared variational and prequential codes for deep networks and found the prequential one far shorter; \citet{voita2020information} used prequential coding to measure what a probe learns. We use both codes: variational for the rate of a prefix and prequential for the distance between prefixes.
 
 \paragraph{Soft prompts as programs}
-\citet{shaw2026bridging} give the universality construction and the adaptive prior we build on, and report that the objective selects compressible solutions that random-initialisation training fails to find. \citet{cosma2026prompting} measure shortest prompts, discrete and soft, as a complexity. \citet{mu2023gist} compress instructions into gist tokens; \citet{vu2022spot} treat learned prompts as task embeddings that predict transfer; \citet{vykopal2025soft} combine soft language prompts with task adapters. \citet{khashabi2022prompt} show that a working soft prompt need not read as words, which is why every claim here is functional: transfer, composition, conditioning or intervention, never a nearest-token reading.
+\citet{shaw2026bridging} give the universality construction and the adaptive prior we build on, and report that the objective selects compressible solutions that random-initialisation training fails to find. \citet{cosma2026prompting} measure shortest prompts, discrete and soft, as a complexity. \citet{vu2022spot} treat learned prompts as task embeddings that predict transfer; \citet{vykopal2025soft} combine soft language prompts with task adapters. \citet{khashabi2022prompt} show that a working soft prompt need not read as words, which is why every claim here is functional: transfer, composition, conditioning or intervention, never a nearest-token reading.
 
 \paragraph{Task and language inside the model}
-Task vectors \citep{hendel2023context} and function vectors \citep{todd2024function} show that a task can be carried by one hidden vector. \citet{wendler2024llamas} and \citet{dumas2025separating} locate a language-agnostic concept representation in the middle blocks with language resolved later; our patching probes test where a learned task part and a learned language part are read.
+Function vectors \citep{todd2024function} show that a task can be carried by one hidden vector patched into the residual stream. \citet{wendler2024llamas} and \citet{dumas2025separating} locate a language-agnostic concept representation in the middle blocks with language resolved later; our patching probes test where a learned task part and a learned language part are read.
 
 \section{Measurement framework}\label{sec:framework}
 
@@ -132,9 +132,9 @@ We use four additional experiments to study how the learned prefixes represent t
 
 \emph{Distance.} We measure the prequential cost $K(a\mid b)$ of training for pair $a$, initialised from pair $b$'s prefix, and compare it with the from-scratch cost $K(a)$. The prequential cost is the predictive loss accumulated while learning, over a fixed budget of 512 examples in doubling blocks. The symmetric, normalised distance is
 \[
-d(a,b)=\frac{K(a\mid b)+K(b\mid a)}{K(a)+K(b)}.
+d(a,b)=\frac{K(a\mid b)+K(b\mid a)}{K(a)+K(b)},
 \]
-We also apply each trained prefix unchanged to other pairs to measure zero-shot transfer.
+the sum-form analogue of the normalised information distance of \citet{li2004similarity}, with prequential learning cost in place of Kolmogorov complexity. We also apply each trained prefix unchanged to other pairs to measure zero-shot transfer.
 
 \emph{Mechanism.} We investigate which transformer blocks use information from the learned prefix. We run the model with a trained prefix and record its activations, then run it with a random prefix of the same $k$. At one selected block, we replace only the activations at the prefix positions, at the input to self-attention, with those recorded from the trained-prefix run; all other activations remain unchanged. We repeat this for each block separately and measure how much of the trained prefix's improvement in loss each replacement recovers. Replacing at all blocks at once recovers it exactly.
 
