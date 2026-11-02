@@ -16,6 +16,7 @@
 \usepackage{xcolor}
 \usepackage{microtype}
 \usepackage{float}
+\usepackage{placeins}
 \newcommand{\Dh}{\hat D}
 \newcommand{\cell}[1]{\texttt{#1}}
 \graphicspath{{../figures/}}
@@ -31,7 +32,7 @@
 \maketitle
 
 \begin{abstract}
-A frozen language model is a fixed machine; a soft prefix that makes it perform a task is a program for that machine, and the shortest such program is a model-relative description length of the task. We measure that length for a frozen Qwen2.5-1.5B base model over a grid of three tasks (translation from English, factual recall, sentence continuation) and three output languages (Russian, German, English), in two units: prefix slots and variational bits under a bits-back code. Four findings. (i)~Slots are not a description length: translation saturates at one slot, and one trained slot beats the natural-language prompt everywhere. (ii)~In bits, a translation program costs about 500~bits at 10\% excess loss, a Russian recall program five times that, and English recall most of all. (iii)~Sharing does not compress, and neither nesting shows a consistent advantage across the tested configurations: a hierarchy with one centre per task and a deviation per language costs 1.9 times the independent programs on the measurable cells, and one centre per language with task deviations only breaks even on Russian and German. The asymmetry is in the mechanism: patching the first block alone recovers 70--87\% of a translation program's effect but only 36--58\% of a recall program's, with further recovery at deeper blocks. (iv)~The variational objective selects compact programs but the standard optimiser does not find them: a conservative step size and checkpoint selection on the full objective lower the measured frontier by 20--71\%.
+A frozen language model is a fixed machine; a soft prefix that makes it perform a task is a program for that machine, and the shortest such program is a model-relative description length of the task. We measure that length for a frozen Qwen2.5-1.5B base model over a grid of three tasks (translation from English, factual recall, sentence continuation) and three output languages (Russian, German, English), in two units: prefix slots and variational bits under a bits-back code. Four findings. (i)~Slots are not a description length: translation saturates at one slot, and one trained slot beats the natural-language prompt everywhere. (ii)~In bits, we find translation programs of about 500~bits at 10\% excess loss, Russian recall programs five times that, and English recall the most expensive of all. (iii)~Sharing provides no consistent compression advantage under the tested configurations, and neither nesting is consistently cheaper: a hierarchy with one centre per task and a deviation per language costs 1.9 times the independent programs on the measurable cells, and one centre per language with task deviations only breaks even on Russian and German. The asymmetry is in the mechanism: patching the first block alone recovers 70--87\% of a translation program's effect but only 36--58\% of a recall program's, with further recovery at deeper blocks. (iv)~The variational objective selects compact programs but the standard optimiser does not find them: a conservative step size and checkpoint selection on the full objective lower the measured frontier by 20--71\%.
 \end{abstract}
 
 \section{Introduction}
@@ -213,11 +214,11 @@ recall-en & --- & 7,155 & 0.226 & 24,686 \\
 \label{tab:frontier}
 \end{table}
 
-Table~\ref{tab:frontier} gives the frontier. A translation program costs about 500 bits. A Russian recall program costs five times that; German and English recall do not reach 10\% excess loss within the budget and cost 3,300 and 7,200 bits at 25\%. A second seed reproduces the corrected column within 4\% on three cells and within 22\% on the other two, with the same ordering (Table~\ref{tab:seeds}). Selecting the qualifying runs on development rather than test distortion reproduces every value in the table except \cell{recall-en} at 0.25, where the cheapest development-qualifying run (5,933 bits) has test distortion 0.253 and misses the test threshold; the 7,155-bit program is the one that qualifies on both sets. Distortion is normalised relative to the no-prefix loss, and the zero-rate program $q=\pi_0$ performs only marginally better than that baseline: $k$ vectors drawn from $\pi_0$ leave $\Dh$ at 0.91--0.96 on translation and 0.93--0.98 on Russian and German recall, and make English recall worse than no prefix (1.07--1.12), averaged over eight draws (Appendix~\ref{app:baseline}).
+Table~\ref{tab:frontier} gives the frontier. The shortest translation program found costs about 500 bits, and the shortest Russian recall program five times that; German and English recall do not reach 10\% excess loss within the budget, and the shortest programs found at 25\% cost 3,300 and 7,200 bits. All of these are upper bounds on the shortest achievable codes (Section~\ref{sec:limitations}). A second seed reproduces the corrected column within 4\% on three cells and within 22\% on the other two, with the same ordering (Table~\ref{tab:seeds}). Selecting the qualifying runs on development rather than test distortion reproduces every value in the table except \cell{recall-en} at 0.25, where the cheapest development-qualifying run (5,933 bits) has test distortion 0.253 and misses the test threshold; the 7,155-bit program is the one that qualifies on both sets. Distortion is normalised relative to the no-prefix loss, and the zero-rate program $q=\pi_0$ performs only marginally better than that baseline: $k$ vectors drawn from $\pi_0$ leave $\Dh$ at 0.91--0.96 on translation and 0.93--0.98 on Russian and German recall, and make English recall worse than no prefix (1.07--1.12), averaged over eight draws (Appendix~\ref{app:baseline}).
 
 The ordering across tasks within a language follows the learning gap $L_{\text{none}}-L_{\text{floor}}$ (recall 3.5--6.2 bits per token, translation 0.6--0.9), as hypothesised. The ordering across languages does not follow exposure: English recall is the dearest program, not the cheapest, in slots and in bits, and the result survives restricting the three recall test sets to the 4,212 items they share ($\Dh$ at $k=4$: ru 0.049, de 0.079, en 0.122). The English LoRA floor is also the worst of the three (2.58 bits per token against 1.10 for Russian). This is consistent with the difficulty lying in the English rendering of the mLAMA items rather than in English as an output language, but tokenisation and the output distribution could contribute, and the experiments do not separate them.
 
-\subsection{Neither nesting is cheaper, and sharing does not compress}\label{sec:hier}
+\subsection{Neither nesting is cheaper, and sharing gives no consistent saving}\label{sec:hier}
 \begin{table}[t]
 \centering\small
 \begin{tabular}{lrrr}
@@ -237,7 +238,7 @@ English (recall) & not reached & 7,155 & -- \\
 \label{tab:groups}
 \end{table}
 
-Table~\ref{tab:groups} compares each group's $R_{\mathrm{group}}$ with the sum of its members' independent frontiers at $\Dh\le0.25$, the only level every measurable cell reaches; continuation is excluded on both sides. Sharing does not compress. Over the five measurable cells the task-centred hierarchy costs 1.87 times the independent programs: parity on translation and 1.9 times on recall. The language-centred hierarchies, retrained on their measurable members, are at parity (1.14 and 0.97) and do not bring English recall under 0.25, so the language-centred comparison is limited to Russian and German, and the two nestings cannot be compared as complete codes of the five pairs at this threshold. Two effects make up the recall factor: at matched $(k,\beta)$ a hierarchy costs 0.94--1.5 times the flat runs with the same hyper-parameters, so the shared centre buys nothing, and the frontier comparison adds the cost of one $\beta$ serving every member, since the only task-centred run in which all three languages reach 0.25 has a centre (14,600 bits) that alone costs more than the three independent programs together. Nor is either nesting cheaper than the other: at matched $(k,\beta)$ the language-centred code costs 0.88--1.24 times the task-centred one over all eight cells (Table~\ref{tab:nestings}).
+Table~\ref{tab:groups} compares each group's $R_{\mathrm{group}}$ with the sum of its members' independent frontiers at $\Dh\le0.25$, the only level every measurable cell reaches; continuation is excluded on both sides. Sharing provides no consistent compression advantage under the tested configurations: the one measured saving, the German language group at 0.97, is too small to be reliable with one seed. Over the five measurable cells the task-centred hierarchy costs 1.87 times the independent programs: parity on translation and 1.9 times on recall. The language-centred hierarchies, retrained on their measurable members, are at parity (1.14 and 0.97) and do not bring English recall under 0.25, so the language-centred comparison is limited to Russian and German, and the two nestings cannot be compared as complete codes of the five pairs at this threshold. Two effects make up the recall factor: at matched $(k,\beta)$ a hierarchy costs 0.94--1.5 times the flat runs with the same hyper-parameters, so the shared centre buys nothing, and the frontier comparison adds the cost of one $\beta$ serving every member, since the only task-centred run in which all three languages reach 0.25 has a centre (14,600 bits) that alone costs more than the three independent programs together. Nor is either nesting cheaper than the other: at matched $(k,\beta)$ the language-centred code costs 0.88--1.24 times the task-centred one over all eight cells (Table~\ref{tab:nestings}).
 
 The per-member costs show no stable asymmetry. Given the translation centre (604 bits), a target language costs 200--225 bits, less than half of a standalone translation program; given a language centre retrained on the measurable members (770--975 bits), translation costs 137--139. Given the recall centre (14,600 bits), a language costs 3,200--3,950 bits, more than a standalone Russian or German recall program; given a language centre, recall costs 2,250--2,770, somewhat less than standalone, and for English no run reaches 0.25. Recall dominates every code that contains it, at 2,250--3,950 bits as a deviation from either kind of centre, and whichever group must carry it is the expensive one. The task given the language costs 0.6--0.7 times the language given the task with the retrained language groups and 0.9--1.3 times with the three-member ones; with one seed per hierarchy and up to 22\% seed variation in the flat frontiers, neither direction is established, and in neither direction does a shared centre save bits.
 
@@ -291,7 +292,7 @@ The training budget is limited to 1500 steps. Under the corrected protocol, all 
 The mechanism experiments replace activations at the prefix positions in the self-attention input; intervening on the residual stream could produce different results. The corrected hierarchical mechanism probes were evaluated at posterior means rather than sampled prefixes, and some measurements were undefined. Finally, the exposure proxy needed to explain the language ordering was unavailable, so that comparison relies on only three languages.
 
 \section{Conclusion}
-Counting tokens misreads a prompt's complexity; counting bits under a bits-back code does not, and at that currency a frozen 1.5B model needs about 500 bits to be told to translate and 2,400 or more to be told to recall facts. Those bits are not organised as a cheap modifier on a shared core: neither nesting shows a consistent compression advantage across the tested configurations, and a centre plus deviations costs no less than independent programs. The asymmetry is mechanistic: recall programs are language-specific, do not compose, and are only partly recovered from the first block, whereas a translation program's effect is recovered almost entirely from the first block alone. The measurement is only as good as the optimiser, and the largest single effect in this study is the one obtained by selecting checkpoints on the objective rather than on distortion. Natural extensions are more languages stratified by resource level, larger models, a charge for the choice of $k$, the per-column mixture prior of \citet{shaw2026bridging} as a second rate, a separate $\beta$ for each member of a hierarchy, and more seeds.
+Counting tokens misreads a prompt's complexity; counting bits under a bits-back code does not. At that currency we find translation programs of about 500 bits and Russian factual-recall programs of about 2,400 bits at the specified distortion thresholds, both upper bounds on the shortest achievable codes. Those bits are not organised as a cheap modifier on a shared core: neither nesting shows a consistent compression advantage across the tested configurations, and a centre plus deviations gives no consistent saving over independent programs. The asymmetry is mechanistic: recall programs are language-specific, do not compose, and are only partly recovered from the first block, whereas a translation program's effect is recovered almost entirely from the first block alone. The measurement is only as good as the optimiser, and the largest single effect in this study is the one obtained by selecting checkpoints on the objective rather than on distortion. Natural extensions are more languages stratified by resource level, larger models, a charge for the choice of $k$, the per-column mixture prior of \citet{shaw2026bridging} as a second rate, a separate $\beta$ for each member of a hierarchy, and more seeds.
 
 \paragraph{Reproducibility}
 The code, result tables, per-example losses, training histories and prefix checkpoints accompany this report; a single notebook regenerates every figure and table from the tables.
@@ -300,17 +301,19 @@ The code, result tables, per-example losses, training histories and prefix check
 \bibliographystyle{plainnat}
 \bibliography{refs}
 
+\clearpage
 \appendix
+\FloatBarrier
 \section{Preregistered comparisons}\label{app:prereg}
-\begin{table}[htbp]
+\begin{table}[H]
 \centering\small
 \begin{tabular}{p{0.03\textwidth}p{0.36\textwidth}p{0.53\textwidth}}
 \toprule
  & hypothesis & outcome \\
 \midrule
 H1 & Within a task, the cost is smallest for English and grows as the language's share of the training data falls; within a language, it grows with task difficulty. & Task ordering supported (recall far above translation). Language ordering reversed on recall (English dearest), robust to the common items; no exposure measure was available. \\
-H2 & The language information in a prefix is small: giving the language saves few slots and bits, giving the task saves many. & Equal on the slot axis (1.8 slots each, 8 of 9 from one cell). In bits no stable asymmetry: task given language 0.9--1.3$\times$ language given task with three-member groups, 0.6--0.7$\times$ with language groups retrained on measurable members, one seed each. The preregistered 1.3--7.8$\times$ asymmetry on recall does not replicate. \\
-H3 & A task part and a language part compose at little cost for high-resource languages, with the cost growing as resource level falls; a shared centre saves bits. & Translation composes partially (60--73\% of the gap zero-shot), recall barely (14--32\%). A shared centre saves no bits: on the five measurable cells the task-centred hierarchy costs 1.87$\times$ independent programs (parity on translation, 1.9$\times$ on recall) and the language-centred groups retrained on measurable members 0.97--1.14$\times$; nestings within 25\% at matched hyper-parameters. The resource-level comparison was not run. \\
+H2 & The language information in a prefix is small: giving the language saves few slots and bits, giving the task saves many. & Equal on the slot axis (1.8 slots each). In bits no stable asymmetry: task given language 0.9--1.3$\times$ language given task with three-member groups, 0.6--0.7$\times$ with retrained language groups, one seed each; the preregistered 1.3--7.8$\times$ asymmetry does not replicate. \\
+H3 & A task part and a language part compose at little cost for high-resource languages, with the cost growing as resource level falls; a shared centre saves bits. & Translation composes partially (60--73\% of the gap zero-shot), recall barely (14--32\%). No consistent saving from a shared centre: task-centred 1.87$\times$ independent programs on the measurable cells, retrained language groups 0.97--1.14$\times$. The resource-level comparison was not run. \\
 H4 & The information-distance matrix over cells clusters by task, not by language. & Silhouette 0.004 (task) against $-0.09$ (language): the task direction, no structure, not significant. \\
 H5 & The language part of a prefix is read in early blocks and the task part in middle blocks \citep{dumas2025separating}. & Block 0 is the peak for both. The language deviation is read again at blocks 16--17 and the task centre is not: a split by part, in the opposite direction. \\
 H6 & Given the program, an input compresses to a similar number of vectors per sentence across languages and a different number per token. & One vector suffices with the task prefix in every cell but one. The per-token variant was not computed, and the vectors carry no rate term. \\
@@ -319,8 +322,9 @@ H6 & Given the program, an input compresses to a similar number of vectors per s
 \caption{Hypotheses fixed before the main runs, and the outcome of each comparison.}
 \end{table}
 
+\FloatBarrier
 \section{Hierarchy: detailed comparisons}\label{app:hier}
-\begin{table}[htbp]
+\begin{table}[H]
 \centering\small
 \begin{tabular}{llr}
 \toprule
@@ -338,7 +342,7 @@ eight independent programs & corrected & 17,600 \\
 \label{tab:codes}
 \end{table}
 
-\begin{table}[htbp]
+\begin{table}[H]
 \centering\small
 \begin{tabular}{lrrr}
 \toprule
@@ -354,11 +358,13 @@ $(k,\beta)$ & task-centred, bits (worst $\Dh$) & language-centred, bits (worst $
 \label{tab:nestings}
 \end{table}
 
+\FloatBarrier
 \section{Input compressibility (exploratory)}\label{app:regime2}
 With the $k=4$ task prefix, one per-example vector replaces the input to within 10\% of the real-input loss on every cell but \cell{translation-ru}, which needs two; without the prefix, translation and continuation need two. There is no rate term on the vectors, so this is a slot count. On recall the bare model scores the target better with no input (3.1 bits per token) than with the real query (7.2), consistent with confident wrong answers once a subject is named.
 
+\FloatBarrier
 \section{Zero-rate baselines}\label{app:baseline}
-\begin{table}[htbp]
+\begin{table}[H]
 \centering\small
 \begin{tabular}{lrrrr}
 \toprule
@@ -376,8 +382,9 @@ recall-en & 1.07 (0.05) & 1.12 (0.06) & 1.04 (0.04) & 1.12 (0.12) \\
 \label{tab:baseline}
 \end{table}
 
+\FloatBarrier
 \section{Run inventory and replication}\label{app:inventory}
-\begin{table}[htbp]
+\begin{table}[H]
 \centering\small
 \begin{tabular}{lrrr}
 \toprule
@@ -393,6 +400,7 @@ cell & seed 0, bits at 0.25 $(k,\beta)$ & seed 1, bits at 0.25 $(k,\beta)$ & rat
 \caption{Replication of the corrected-protocol frontier with a second seed; each seed's frontier is an independent replicate of the whole run grid. The binding level is 0.25 for \cell{recall-de} and \cell{recall-en} and 0.10 for the other cells, where the two levels coincide.}
 \label{tab:seeds}
 \end{table}
-Design~A, baselines and floors: 273 runs (6 values of $k$, 2 seeds, 3 conditionings, 8 cells). Flat variational: 72 runs under the preregistered protocol and 40 under the corrected one (two seeds). Hierarchical: 54 joint runs under the preregistered rule and 24 under the corrected protocol, plus 8 joint runs of the language groups retrained on their measurable members. Composition: 10 joint runs. Distance: 72 warm starts. Regime~2: 32 settings. Mechanism: 1,120 single-block patches on the Design~A prefixes and the preregistered hierarchies, and the same number on the corrected hierarchies at the posterior mean. One 3000-step recall run. Zero-rate baselines: 32 settings with eight draws each. Training: 1500 steps, batch 16, AdamW, learning rate 0.05 (0.01 under the corrected protocol), 50 warm-up steps, cosine decay, gradient clip 1.0, development evaluation every 100 steps. LoRA floors: rank 16 on the attention projections, learning rate $2\times10^{-4}$, 1500 steps. Bootstrap intervals over test examples for the gain of the $\Dh\le0.10$ frontier runs over the no-prefix model, evaluated at the posterior mean (per-example bits are stored for the mean only): $0.52\pm0.01$ bits per token on \cell{translation-ru}, $0.50\pm0.03$ on \cell{translation-de} and $5.69\pm0.07$ on \cell{recall-ru}.
+Design~A, baselines and floors: 273 runs. Flat variational: 72 preregistered and 40 corrected runs (two seeds). Hierarchical: 54 preregistered and 24 corrected joint runs, plus 8 for the language groups retrained on their measurable members. Composition: 10 joint runs. Distance: 72 warm starts. Regime~2: 32 settings. Mechanism: 1,120 single-block patches, repeated on the corrected hierarchies at the posterior mean. One 3000-step recall run. Zero-rate baselines: 32 settings, eight draws each. Training: 1500 steps, batch 16, AdamW, learning rate 0.05 (0.01 under the corrected protocol), 50 warm-up steps, cosine decay, gradient clip 1.0, development evaluation every 100 steps; LoRA floors rank 16 on the attention projections, learning rate $2\times10^{-4}$, 1500 steps. Bootstrap intervals over test examples for the gain of the $\Dh\le0.10$ frontier runs over the no-prefix model, at the posterior mean: $0.52\pm0.01$ bits per token on \cell{translation-ru}, $0.50\pm0.03$ on \cell{translation-de} and $5.69\pm0.07$ on \cell{recall-ru}.
 
+\FloatBarrier
 \end{document}

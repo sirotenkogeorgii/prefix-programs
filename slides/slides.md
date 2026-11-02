@@ -42,11 +42,11 @@ fontsize: 10pt
 | recall‑de | — (best 0.14) | 3,343 |
 | recall‑en | — (best 0.23) | 7,155 |
 
-- A translation program ≈ 500 bits; Russian recall 5×; English recall dearest, also on the 4,212 items shared by all three recall test sets.
+- Shortest programs found: translation ≈ 500 bits; Russian recall 5× (upper bounds); English recall dearest, also on the 4,212 items shared by all three recall test sets.
 - Task ordering follows the learning gap (H1 yes); language ordering does **not** follow exposure (H1 no).
 - Replication seed (corrected protocol): within 4% on three cells, 17–22% on recall‑de / translation‑de in opposite directions; same ordering.
 
-## Result 3: neither nesting is cheaper, and sharing does not compress
+## Result 3: neither nesting is cheaper, and sharing gives no consistent saving
 
 ![](../figures/hier_bars.png){width=78%}
 
@@ -64,7 +64,7 @@ Centre paid once per group, each deviation once per member; cheapest run with ev
 | eight independent programs | corrected | 17,600 |
 
 - Prereg. rule: task‑centred wins by 37%. Corrected: the nestings tie within 25% at matched (k, β); language‑centred never gets recall‑en under 0.25.
-- A shared centre **saves no bits**: 1.87× the independent programs on the five measurable cells; parity on translation (1,029 vs 978), 1.9× on recall (24,972 vs 12,917).
+- A shared centre gives **no consistent saving**: 1.87× the independent programs on the five measurable cells; parity on translation (1,029 vs 978), 1.9× on recall (24,972 vs 12,917).
 - At matched (k, β) a hierarchy costs 0.94–1.5× the sum of the corrected flat runs.
 
 ## What a language costs, what a task costs
@@ -113,7 +113,7 @@ Same‑task warm start costs 0.85 of scratch, same‑language 0.95. Silhouettes 
 |----------------|------------------------------------------------------|
 | H1 cost orderings | task yes (recall far above translation); language no (English dearest) |
 | H2 cheap language | slots: equal; bits: equal under the corrected protocol (prereg. 1.3–7.8× asymmetry does not replicate) |
-| H3 separability | partial on translation, not on recall; a shared centre saves no bits (1.87× independent on measurable cells; language groups at parity); nestings equal within 25% |
+| H3 separability | partial on translation, not on recall; a shared centre gives no consistent saving (1.87× independent on measurable cells; language groups at parity); nestings equal within 25% |
 | H4 task‑organised distance | direction yes, structure no, not significant (silhouette 0.004 vs −0.09) |
 | H5 depth split | language deviation read early and late, task centre early: opposite to H5 |
 | H6 input compressibility | one vector suffices with the task prefix (exploratory) |
