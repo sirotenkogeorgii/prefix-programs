@@ -14,6 +14,6 @@
     "k grid kept: recall still improves from k=4 to k=16 on dev (1.53 -> 1.50 bits/tok), translation saturates by k=4.",
     "lr 5e-2 kept: best dev step was 250-300 of 300 in every pilot run, so 1500 steps is not short.",
     "Test subsets, when capped, are seeded random subsamples; the pilot's head-of-split cap is why its recall test bits are below dev.",
-    "Confirmatory comparisons are the five listed in Prefix_Project_Proposal_v1.md Section 8; everything else is exploratory."
+    "Confirmatory comparisons are the six preregistered hypotheses H1-H6 (report, Appendix A); everything else is exploratory."
   ]
 }

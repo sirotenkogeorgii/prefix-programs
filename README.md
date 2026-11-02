@@ -2,7 +2,7 @@
 
 Soft prefixes as programs for a frozen multilingual language model: how many bits, and how many prefix slots,
 does it take to tell the model which language to produce in and which task to perform, and are the two
-separable? See `Prefix_Project_Proposal_v1.md` for the design and hypotheses.
+separable? See the report for the design and hypotheses.
 
 ## Layout
 
