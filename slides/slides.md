@@ -123,4 +123,4 @@ Same‑task warm start costs 0.85 of scratch, same‑language 0.95. Silhouettes 
 - Two seeds; recall budget‑bound (3000 steps: $\hat D$ 0.043 to 0.032 and falling); continuation unmeasurable; distance matrix one seed.
 - Variational protocol corrected after preregistration; both reported. Both nestings rerun under it; every corrected rate still falling at 1500 steps.
 - Research version, same code: scale axis 0.5B–7B, 20+ languages by resource level, per‑column mixture prior, charge $\log_2|k\text{-grid}|$ bits for $k$, step size in prior‑σ units.
-- Repo: `sirotenkogeorgii/prefix-programs`, branch `prefixlab`; `01_figures.ipynb` regenerates everything in under a minute.
+- All figures and tables regenerate from the result tables with one notebook.
