@@ -41,6 +41,10 @@ python -m pytest
 # figures and tables from the committed results, no GPU:
 (cd notebooks && jupyter nbconvert --to notebook --execute --inplace 01_figures.ipynb)
 python scripts/draw_sampling_figure.py   # schematic of the two units and the draw schedule (figures/sampling.png)
+# post-review jobs (GPU): language groups retrained on measurable members, and zero-rate baselines (no training):
+python scripts/run_hier.py --group lang --tasks translation,recall --langs ru,de --ks 2,4 --betas 1,3 --protocol corrected --lr 0.01 \
+    --results results/hier2_lang_meas.csv --ckpt-dir checkpoints/hier2_lang_meas
+python scripts/run_baseline.py --ks 2,4 --kinds prior,vocab --n-draws 8 --results results/baseline.csv
 # report and slides:
 (cd report && pandoc report.md -o report.pdf --pdf-engine=xelatex --resource-path=.:..)
 (cd slides && pandoc slides.md -t beamer -o slides.pdf --pdf-engine=xelatex --resource-path=.:.. -V sansfont="Helvetica Neue")

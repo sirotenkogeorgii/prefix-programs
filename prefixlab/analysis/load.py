@@ -11,7 +11,7 @@ from pathlib import Path
 import numpy as np
 import pandas as pd
 
-TABLES = ["sweep", "flat", "flat2", "hier_task", "hier_lang", "hier2_task", "hier2_lang", "compose", "distance", "regime2", "mechanism", "mechanism2", "mechanism2s", "recall_long"]
+TABLES = ["sweep", "flat", "flat2", "hier_task", "hier_lang", "hier2_task", "hier2_lang", "compose", "distance", "regime2", "mechanism", "mechanism2", "mechanism2s", "recall_long", "hier2_lang_meas", "baseline"]
 CELLS = ["translation-ru", "translation-de", "recall-ru", "recall-de", "recall-en",
          "continuation-ru", "continuation-de", "continuation-en"]
 MEASURABLE = ["translation-ru", "translation-de", "recall-ru", "recall-de", "recall-en"]  # continuation: floor ≈ no-prefix

@@ -228,3 +228,19 @@ def test_pipeline_runs_on_synced_results():
     M, s = distance.cost_matrix(T["distance"], cells=load.CELLS)
     assert distance.clustering_silhouettes(distance.symmetrised_distance(M, s)).shape[0] == 2
     assert mechanism.depth_summary(mechanism.recovery(T["mechanism"])).shape[0] > 0
+
+
+def test_baseline_distortion_on_the_cell_scale():
+    import json
+    from prefixlab.analysis.baseline import baseline_distortion
+    fl = pd.DataFrame([dict(cell="translation-ru", L_none=2.0, L_floor=1.0), dict(cell="continuation-ru", L_none=3.0, L_floor=3.0)])
+    b = pd.DataFrame([
+        dict(cell="translation-ru", kind="prior", k=2, test_bits_per_token=1.8, test_bits_draws=json.dumps([1.7, 1.9])),
+        dict(cell="continuation-ru", kind="prior", k=2, test_bits_per_token=3.1, test_bits_draws=json.dumps([3.0, 3.2])),
+        dict(cell="recall-xx", kind="prior", k=2, test_bits_per_token=1.0, test_bits_draws=json.dumps([1.0])),
+    ])
+    out = baseline_distortion(b, fl)
+    assert len(out) == 2
+    r = out[out.cell == "translation-ru"].iloc[0]
+    assert abs(r.D_mean - 0.8) < 1e-9 and abs(r.D_min - 0.7) < 1e-9 and abs(r.D_max - 0.9) < 1e-9 and r.n_draws == 2
+    assert np.isnan(out[out.cell == "continuation-ru"].iloc[0].D_mean)
