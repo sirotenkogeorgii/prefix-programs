@@ -4,7 +4,7 @@ Soft prefixes as programs for a frozen multilingual language model: how many bit
 does it take to tell the model which language to produce in and which task to perform, and are the two
 separable? See the report for the design and hypotheses.
 
-**Report:** [`paper/paper.pdf`](paper/paper.pdf) (paper format, 13 pages). Longer seminar version: [`report/report.pdf`](report/report.pdf); slides: [`slides/slides.pdf`](slides/slides.pdf). Every figure and table in them is regenerated from `results_sync/` by `notebooks/01_figures.ipynb`.
+**Report:** [`report/report.pdf`](report/report.pdf) (13 pages); slides: [`slides/slides.pdf`](slides/slides.pdf). Every figure and table in them is regenerated from `results_sync/` by `notebooks/01_figures.ipynb`.
 
 ## Layout
 
@@ -27,8 +27,8 @@ separable? See the report for the design and hypotheses.
 - `notebooks/01_colab_runner.ipynb` — runs the whole grid on Colab (A100, ~32 h), resumable.
 - `notebooks/01_figures.ipynb` — regenerates `figures/` and `tables/` from `results_sync/` and `prereg.json`, no GPU.
 - `notebooks/02_live_demo.ipynb` — trains one prefix live and places it on the stored curve (GPU).
-- `report/report.md` (+ PDF) and `slides/slides.md` (+ PDF, PPTX) — the seminar report and talk, built with pandoc.
-- `paper/paper.tex` (+ PDF, `refs.bib`, NeurIPS style file) — the paper-format write-up, built with `latexmk -pdf`.
+- `report/report.tex` (+ PDF, `refs.bib`, NeurIPS style file) — the report, built with `latexmk -pdf`.
+- `slides/slides.md` (+ PDF, PPTX) — the talk, built with pandoc.
 - `prereg.json` — operating points, grids and training settings fixed on dev before any test number.
 - `tests/` — pytest on a tiny random Qwen2 config (no model download).
 
@@ -48,12 +48,12 @@ python scripts/run_hier.py --group lang --tasks translation,recall --langs ru,de
     --results results/hier2_lang_meas.csv --ckpt-dir checkpoints/hier2_lang_meas
 python scripts/run_baseline.py --ks 2,4 --kinds prior,vocab --n-draws 8 --results results/baseline.csv
 # report and slides:
-(cd report && pandoc report.md -o report.pdf --pdf-engine=xelatex --resource-path=.:..)
+(cd report && latexmk -pdf report.tex)
 (cd slides && pandoc slides.md -t beamer -o slides.pdf --pdf-engine=xelatex --resource-path=.:.. -V sansfont="Helvetica Neue")
 ```
 
 Variational runs: `--design flat` is the preregistered protocol; `--design flat2 --lr 0.01` the corrected one
-(checkpoint by dev objective, dev scored with posterior samples), which is the headline in the report.
+(checkpoint by dev objective, dev scored with posterior samples), which is used throughout the report.
 Hierarchical runs: `scripts/run_hier.py --protocol prereg` (default) writes `hier_task.csv` / `hier_lang.csv`;
 `--protocol corrected --lr 0.01` writes `hier2_task.csv` / `hier2_lang.csv`, the like-for-like comparison with flat2.
 
