@@ -1,7 +1,8 @@
-"""The sampling step for one slot, drawn like a VAE figure, in the paper's notation; writes figures/sampling.png.
+"""The sampling step of a variational prefix, drawn like a VAE figure in the paper's notation; writes figures/sampling.png.
 
-The draw rule z = mu + sigma * eps is prefixlab/prefix.py (VariationalPrefix.forward); mu and sigma are the trained
-parameters of the slot posterior q (no encoder); the frozen model M scores the target y given the sample z and input x.
+Each slot i has a posterior q_i with trained mu_i, sigma_i; a sample z_i = mu_i + sigma_i * eps_i (prefixlab/prefix.py,
+VariationalPrefix.forward) is drawn per slot at every forward call; the k samples form the prefix, which precedes the
+input tokens x; the frozen model M scores the target tokens y. d is the model's embedding dimension (1,536).
 """
 from __future__ import annotations
 
@@ -35,30 +36,40 @@ def header(ax, x, lines, fs=10):
 
 
 def main(out: Path):
-    fig, ax = plt.subplots(figsize=(6.6, 2.75))
+    fig, ax = plt.subplots(figsize=(7.4, 2.9))
     fig.subplots_adjust(left=0.01, right=0.99, top=0.99, bottom=0.01)
     ax.set_xlim(0, 100); ax.set_ylim(0, 46); ax.axis("off")
 
-    # column 1: the slot's distribution, trained parameters mu and sigma (no encoder)
-    header(ax, 14, ["posterior", "of the slot", r"$q = \mathcal{N}(\mu,\ \mathrm{diag}\,\sigma^2)$"])
-    rect(ax, 11, 19, 6, 10, r"$\mu$")
-    rect(ax, 11, 6, 6, 10, r"$\sigma$")
-    ax.text(14, 3.2, r"trained $\mu$, $\sigma$", ha="center", va="top", fontsize=9)
+    # column 1: the posterior of one slot, trained mu and sigma (no encoder); one such pair per slot
+    header(ax, 9, ["posterior of slot $i$", r"$q_i = \mathcal{N}(\mu_i,\ \mathrm{diag}\,\sigma_i^2)$"])
+    rect(ax, 6, 19, 6, 10, r"$\mu_i$")
+    rect(ax, 6, 6, 6, 10, r"$\sigma_i$")
+    ax.text(3, 3.4, r"trained, one pair per slot, $i = 1, \ldots, k$", ha="left", va="top", fontsize=8.5)
 
-    # arrow 1: the draw
-    arrow(ax, 18.5, 44, 17.5, r"sample $z = \mu + \sigma \odot \varepsilon$", r"$\varepsilon \sim \mathcal{N}(0, I)$")
+    # arrow 1: the draw, repeated for every slot
+    arrow(ax, 13.5, 35.5, 17.5, r"sample $z_i = \mu_i + \sigma_i \odot \varepsilon_i$", r"$\varepsilon_i \sim \mathcal{N}(0, I_d)$", fs=9)
 
-    # column 2: the slot vector
-    header(ax, 50, ["posterior sample", r"$z \in \mathbb{R}^{1536}$"])
-    rect(ax, 46.5, 12.5, 7, 10, r"$z$")
+    # column 2: the prefix of k samples followed by the input tokens, one sequence
+    header(ax, 46.5, ["prefix: $k$ samples", r"$z_i \in \mathbb{R}^d$"])
+    header(ax, 68, ["input", "tokens $x$"])
+    xs = [36, 41.5, 47, 52.5]
+    for x0, lab in zip(xs, [r"$z_1$", r"$z_2$", None, r"$z_k$"]):
+        if lab is None:
+            ax.text(x0 + 2.25, 17.5, r"$\cdots$", ha="center", va="center", fontsize=11)
+        else:
+            rect(ax, x0, 12.5, 4.5, 10, lab, fs=10)
+    rect(ax, 63, 12.5, 10, 10, r"$x$")
+    ax.plot([36, 73], [10.2, 10.2], color="black", lw=0.6)
+    ax.plot([36, 36], [10.2, 11.2], color="black", lw=0.6); ax.plot([73, 73], [10.2, 11.2], color="black", lw=0.6)
+    ax.text(54.5, 9.2, "one input sequence to the model", ha="center", va="top", fontsize=8.5)
 
-    # arrow 2: the frozen model as the decoder
-    arrow(ax, 55, 83.5, 17.5, r"frozen model $M$", r"$p_M(y \mid z, x)$")
+    # arrow 2: the frozen model scores the target given the whole sequence
+    arrow(ax, 74.5, 86.5, 17.5, r"frozen model $M$", r"$p_M(y \mid z_{1:k}, x)$")
 
     # column 3: the target tokens
-    header(ax, 90, ["target", "tokens $y$"])
-    rect(ax, 86, 3, 8, 32)
-    ax.text(90, 19, r"$y$", ha="center", va="center", fontsize=11)
+    header(ax, 91.5, ["target", "tokens $y$"])
+    rect(ax, 88, 3, 7, 32)
+    ax.text(91.5, 19, r"$y$", ha="center", va="center", fontsize=11)
 
     fig.savefig(out, dpi=220)
     print("wrote", out)
