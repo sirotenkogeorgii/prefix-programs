@@ -320,12 +320,6 @@ H6 & Given the program, an input compresses to a similar number of vectors per s
 \end{table}
 
 \section{Hierarchy: detailed comparisons}\label{app:hier}
-\begin{figure}[htbp]
-\centering\includegraphics[width=0.85\textwidth]{hier_bars_corrected.png}
-\caption{Code length at $\Dh\le0.25$ under the two nestings, corrected protocol: the centre is paid once per group, each deviation once per member; the cheapest run whose members all reach the level.}
-\label{fig:hier}
-\end{figure}
-
 \begin{table}[htbp]
 \centering\small
 \begin{tabular}{llr}
@@ -383,7 +377,6 @@ recall-en & 1.07 (0.05) & 1.12 (0.06) & 1.04 (0.04) & 1.12 (0.12) \\
 \end{table}
 
 \section{Run inventory and replication}\label{app:inventory}
-Design~A, baselines and floors: 273 runs (6 values of $k$, 2 seeds, 3 conditionings, 8 cells). Flat variational: 72 runs under the preregistered protocol and 40 under the corrected one (two seeds). Hierarchical: 54 joint runs under the preregistered rule and 24 under the corrected protocol, plus 8 joint runs of the language groups retrained on their measurable members. Composition: 10 joint runs. Distance: 72 warm starts. Regime~2: 32 settings. Mechanism: 1,120 single-block patches on the Design~A prefixes and the preregistered hierarchies, and the same number on the corrected hierarchies at the posterior mean. One 3000-step recall run. Zero-rate baselines: 32 settings with eight draws each. Training: 1500 steps, batch 16, AdamW, learning rate 0.05 (0.01 under the corrected protocol), 50 warm-up steps, cosine decay, gradient clip 1.0, development evaluation every 100 steps. LoRA floors: rank 16 on the attention projections, learning rate $2\times10^{-4}$, 1500 steps. Bootstrap intervals over test examples for the gain of the $\Dh\le0.10$ frontier runs over the no-prefix model, evaluated at the posterior mean (per-example bits are stored for the mean only): $0.52\pm0.01$ bits per token on \cell{translation-ru}, $0.50\pm0.03$ on \cell{translation-de} and $5.69\pm0.07$ on \cell{recall-ru}.
 \begin{table}[htbp]
 \centering\small
 \begin{tabular}{lrrr}
@@ -400,5 +393,6 @@ cell & seed 0, bits at 0.25 $(k,\beta)$ & seed 1, bits at 0.25 $(k,\beta)$ & rat
 \caption{Replication of the corrected-protocol frontier with a second seed; each seed's frontier is an independent replicate of the whole run grid. The binding level is 0.25 for \cell{recall-de} and \cell{recall-en} and 0.10 for the other cells, where the two levels coincide.}
 \label{tab:seeds}
 \end{table}
+Design~A, baselines and floors: 273 runs (6 values of $k$, 2 seeds, 3 conditionings, 8 cells). Flat variational: 72 runs under the preregistered protocol and 40 under the corrected one (two seeds). Hierarchical: 54 joint runs under the preregistered rule and 24 under the corrected protocol, plus 8 joint runs of the language groups retrained on their measurable members. Composition: 10 joint runs. Distance: 72 warm starts. Regime~2: 32 settings. Mechanism: 1,120 single-block patches on the Design~A prefixes and the preregistered hierarchies, and the same number on the corrected hierarchies at the posterior mean. One 3000-step recall run. Zero-rate baselines: 32 settings with eight draws each. Training: 1500 steps, batch 16, AdamW, learning rate 0.05 (0.01 under the corrected protocol), 50 warm-up steps, cosine decay, gradient clip 1.0, development evaluation every 100 steps. LoRA floors: rank 16 on the attention projections, learning rate $2\times10^{-4}$, 1500 steps. Bootstrap intervals over test examples for the gain of the $\Dh\le0.10$ frontier runs over the no-prefix model, evaluated at the posterior mean (per-example bits are stored for the mean only): $0.52\pm0.01$ bits per token on \cell{translation-ru}, $0.50\pm0.03$ on \cell{translation-de} and $5.69\pm0.07$ on \cell{recall-ru}.
 
 \end{document}
