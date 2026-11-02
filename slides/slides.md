@@ -64,15 +64,15 @@ Centre paid once per group, each deviation once per member; cheapest run with ev
 | eight independent programs | corrected | 17,600 |
 
 - Prereg. rule: task‑centred wins by 37%. Corrected: the nestings tie within 25% at matched (k, β); language‑centred never gets recall‑en under 0.25.
-- A shared centre **saves no bits**: 1.5× the independent programs; parity on translation (1,029 vs 978), 1.9× on recall (24,972 vs 12,917).
+- A shared centre **saves no bits**: 1.87× the independent programs on the five measurable cells; parity on translation (1,029 vs 978), 1.9× on recall (24,972 vs 12,917).
 - At matched (k, β) a hierarchy costs 0.94–1.5× the flat2 sum.
 
 ## What a language costs, what a task costs
 
 - Given the **translation** centre (604 bits): Russian 225, German 200 bits, 0.41–0.46 of a standalone program (corrected protocol; 485 / 662 under the preregistered rule).
 - Given the **recall** centre (14,600 bits): a language costs 3,200–3,950 bits, more than a standalone Russian or German program.
-- Given a **language** centre (830–900 bits): translation 201 / 257, recall 3,200 / 3,400, continuation 60 (ru / de). Symmetric with the task‑centred costs; the prereg. asymmetry (recall 5,300–26,200 given a language) was the optimiser.
-- Recall is the program that cannot be shared: about 3,200 bits as a deviation from either kind of centre.
+- Given a **language** centre retrained on translation + recall (975 / 770 bits): translation 137 / 139, recall 2,251 / 2,774 (ru / de); the group is at parity with independent programs (1.14 / 0.97). Compare with the task‑centred costs; the prereg. asymmetry (recall 5,300–26,200 given a language) was the optimiser.
+- Recall dominates every code that contains it: 2,250–3,950 bits as a deviation from either kind of centre.
 - For translation alone the hierarchy is at best at parity: 1,029 vs 978 bits (corrected), 2,733 vs 1,893 (prereg.).
 
 ## Result 4: composition and distance
@@ -113,7 +113,7 @@ Same‑task warm start costs 0.85 of scratch, same‑language 0.95. Silhouettes 
 |----------------|------------------------------------------------------|
 | H1 cost orderings | task yes (recall far above translation); language no (English dearest) |
 | H2 cheap language | slots: equal; bits: equal under the corrected protocol (prereg. 1.3–7.8× asymmetry does not replicate) |
-| H3 separability | partial on translation, not on recall; a shared centre saves no bits (1.5× independent); nestings equal within 25% |
+| H3 separability | partial on translation, not on recall; a shared centre saves no bits (1.87× independent on measurable cells; language groups at parity); nestings equal within 25% |
 | H4 task‑organised distance | direction yes, structure no, not significant (silhouette 0.004 vs −0.09) |
 | H5 depth split | language deviation read early and late, task centre early: opposite to H5 |
 | H6 input compressibility | one vector suffices with the task prefix (exploratory) |
